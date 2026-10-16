@@ -53,3 +53,11 @@ def test_forged_day_cannot_bypass_geography(schedule):
     report = validate_schedule(schedule, teams, slots, rules)
     assert not report['checks']['geography']['passed']
     assert not report['checks']['metadata']['passed']
+
+
+@pytest.mark.parametrize('extension', ['json', 'csv'])
+def test_current_verified_export(extension):
+    matches = read_schedule(Path(f'examples/current/schedule.{extension}'))
+    report = validate_schedule(matches, *load_inputs('data'))
+    assert report['valid'], json.dumps(report)
+    assert len(matches) == 182
