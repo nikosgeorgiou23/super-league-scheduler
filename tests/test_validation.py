@@ -89,7 +89,8 @@ def test_malformed_and_duplicate(inputs):
     assert not passed(inputs, [m], 'metadata')
 
 
-def test_no_derby_slot_mapping(inputs):
+def test_balander_derby_requires_s3(inputs):
     m = record(inputs, 3, 'aris', 'iraklis', 'S1')
     errors = validate_schedule([m], *inputs)['checks']['slots']['errors']
     assert not any('big team' in e for e in errors)
+    assert not passed(inputs, [m], 'derby_slots')

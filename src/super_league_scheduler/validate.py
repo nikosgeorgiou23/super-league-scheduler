@@ -8,7 +8,7 @@ from pathlib import Path
 from .data import load_inputs, derby_kind
 
 CHECKS = ('structure', 'participation', 'pairings', 'venues', 'slots',
-          'geography', 'derbies', 'streaks', 'rematches', 'metadata')
+          'geography', 'derbies', 'derby_slots', 'saturday_big', 'streaks', 'rematches', 'metadata')
 
 
 def validate_schedule(matches, teams, slots, rules):
@@ -59,6 +59,36 @@ def validate_schedule(matches, teams, slots, rules):
                         for m in ms if team[m['home']]['home_conflict_group'])
         if any(v > rules['max_home_per_conflict_group_per_day'] for v in hosts.values()):
             fail('geography', f'Round {r}: protected hosts on same day')
+        saturday_big = sum(
+            (team[m['home']]['category'] == 'big') +
+            (team[m['away']]['category'] == 'big')
+            for m in ms if slot[m['slot']]['day'] == 'saturday')
+        if saturday_big > rules['max_big_teams_saturday']:
+            fail('saturday_big', f'Round {r}: {saturday_big} big teams on Saturday')
+        if rules['derby_slot_rules_enabled']:
+            derbies = [m for m in ms if derby_kind(team[m['home']], team[m['away']])]
+            big = [m for m in derbies
+                   if derby_kind(team[m['home']], team[m['away']]) == 'big']
+            small = [m for m in derbies
+                     if derby_kind(team[m['home']], team[m['away']]) == 'small']
+            if len(derbies) == 1:
+                m = derbies[0]
+                balander_pair = all(team[m[k]]['category'] == 'balander'
+                                    for k in ('home', 'away'))
+                expected_slot = 'S3' if balander_pair else 'S7'
+                if m['slot'] != expected_slot:
+                    fail('derby_slots', f'Round {r}: single derby requires {expected_slot}')
+            elif len(derbies) == 2:
+                if len(big) == 2 or len(small) == 2:
+                    if sorted(m['slot'] for m in derbies) != ['S6', 'S7']:
+                        fail('derby_slots', f'Round {r}: two same-type derbies require S6/S7')
+                else:
+                    m = small[0]
+                    balander_pair = all(team[m[k]]['category'] == 'balander'
+                                        for k in ('home', 'away'))
+                    expected_slot = 'S3' if balander_pair else 'S6'
+                    if m['slot'] != expected_slot or big[0]['slot'] != 'S7':
+                        fail('derby_slots', f'Round {r}: mixed derbies require {expected_slot}/S7')
         count = sum(derby_kind(team[m['home']], team[m['away']]) is not None for m in ms)
         if count > (0 if r in rules['no_derby_rounds'] else rules['max_derbies_per_round']):
             fail('derbies', f'Round {r}: {count} derbies')

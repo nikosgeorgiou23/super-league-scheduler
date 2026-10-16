@@ -12,10 +12,12 @@ def schedule():
 
 
 @pytest.mark.parametrize('extension', ['json', 'csv'])
-def test_complete_verified_export(extension):
+def test_legacy_export_rejected_by_new_rules(extension):
     matches = read_schedule(Path(f'examples/verified/schedule.{extension}'))
     report = validate_schedule(matches, *load_inputs('data'))
-    assert report['valid'], json.dumps(report)
+    assert not report['valid']
+    assert not report['checks']['slots']['passed']
+    assert not report['checks']['derby_slots']['passed']
     assert len(matches) == 182
     assert matches == sorted(matches, key=lambda m: (m['round'], m['slot']))
 

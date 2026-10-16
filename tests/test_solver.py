@@ -22,7 +22,7 @@ def test_model_is_valid_and_has_no_objective(built):
 def test_model_forbids_opening_derby(built, r):
     original, variables = built
     model = original.clone()
-    model.add(variables[r, 0, 1, 1] == 1)
+    model.add(variables[r, 0, 1, 2] == 1)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 5
     assert solver.solve(model) == cp_model.INFEASIBLE
@@ -32,7 +32,7 @@ def test_model_forbids_cross_half_home_streak(built):
     original, variables = built
     model = original.clone()
     for r, opponent in zip((11, 12, 13), (6, 7, 8)):
-        model.add(variables[r, 0, opponent, 1] == 1)
+        model.add(variables[r, 0, opponent, 2] == 1)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 5
     assert solver.solve(model) == cp_model.INFEASIBLE

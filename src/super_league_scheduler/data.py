@@ -11,7 +11,8 @@ def load_inputs(directory):
                     max_derbies_per_round=2, no_derby_rounds=[1, 2],
                     max_consecutive_home=2, max_consecutive_away=2,
                     min_rematch_round_difference=3, mirror_required=False,
-                    mirror_forbidden=False, derby_slot_rules_enabled=False,
+                    mirror_forbidden=False, derby_slot_rules_enabled=True,
+                    max_big_teams_saturday=1,
                     max_home_per_conflict_group_per_day=1)
     for k, v in expected.items():
         if rules.get(k) != v:
@@ -42,7 +43,7 @@ def load_inputs(directory):
     if config['timezone'] != 'Europe/Athens' or any(
             (s['start_earliest'], s['start_latest']) != w for s, w in zip(slots, windows)):
         raise ValueError('Time windows or timezone conflict with README')
-    if set(rules['big_team_allowed_slots']) != {'S2', 'S3', 'S4', 'S6', 'S7'}:
+    if set(rules['big_team_allowed_slots']) != {'S3', 'S4', 'S6', 'S7'}:
         raise ValueError('Big team slots conflict with README')
     return teams, slots, rules
 

@@ -35,6 +35,14 @@ def build_model(teams, slots, rules):
             model.add_exactly_one(values)
         for values in geo.values():
             model.add(sum(values) <= rules['max_home_per_conflict_group_per_day'])
+        # Count individual big-team appearances on Saturday, not just matches.
+        model.add(sum(v * ((teams[h]['category'] == 'big') +
+                           (teams[a]['category'] == 'big'))
+                      for (rr, h, a, s), v in y.items()
+                      if rr == r and slots[s]['day'] == 'saturday')
+                  <= rules['max_big_teams_saturday'])
+        if rules['derby_slot_rules_enabled']:
+            _add_derby_slots(model, r, x, y, teams, slots)
         model.add(sum(x[r, h, a] for h in range(n) for a in range(n)
                       if h != a and derby_kind(teams[h], teams[a]))
                   <= (0 if r + 1 in rules['no_derby_rounds'] else rules['max_derbies_per_round']))
@@ -50,3 +58,38 @@ def build_model(teams, slots, rules):
         for r in range(24):
             model.add_linear_constraint(sum(home[r:r + 3]), 1, 2)
     return model, y
+
+
+def _add_derby_slots(model, r, x, y, teams, slots):
+    """Enforce the exhaustive round-level derby cases with reified counts."""
+    pairs = [(h, a) for h in range(len(teams)) for a in range(len(teams))
+             if h != a and derby_kind(teams[h], teams[a])]
+    big_count = sum(x[r, h, a] for h, a in pairs
+                    if derby_kind(teams[h], teams[a]) == 'big')
+    small_count = sum(x[r, h, a] for h, a in pairs
+                      if derby_kind(teams[h], teams[a]) == 'small')
+    cases = {}
+    for big, small in ((0, 0), (0, 1), (1, 0), (0, 2), (2, 0), (1, 1)):
+        flag = model.new_bool_var(f'derby_case_{r}_{big}_{small}')
+        model.add(big_count == big).only_enforce_if(flag)
+        model.add(small_count == small).only_enforce_if(flag)
+        cases[big, small] = flag
+    model.add_exactly_one(list(cases.values()))
+    for (rr, h, a, s), var in y.items():
+        if rr != r or (h, a) not in pairs:
+            continue
+        kind = derby_kind(teams[h], teams[a])
+        balander_pair = teams[h]['category'] == teams[a]['category'] == 'balander'
+        for (big, small), flag in cases.items():
+            if (big, small) == (0, 0):
+                continue
+            if big + small == 1:
+                allowed = {'S3'} if balander_pair else {'S7'}
+            elif big == 2 or small == 2:
+                allowed = {'S6', 'S7'}
+            elif kind == 'big':
+                allowed = {'S7'}
+            else:
+                allowed = {'S3'} if balander_pair else {'S6'}
+            if slots[s]['id'] not in allowed:
+                model.add(var == 0).only_enforce_if(flag)
