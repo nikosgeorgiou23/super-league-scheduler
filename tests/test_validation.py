@@ -23,6 +23,17 @@ def passed(inputs, records, check):
     return validate_schedule(records, *inputs)['checks'][check]['passed']
 
 
+@pytest.mark.parametrize('start', [1, 12, 13, 24])
+@pytest.mark.parametrize('target', ['volos', 'paok'])
+@pytest.mark.parametrize('third,ok', [('aek', False), ('ofi', True)])
+def test_big_opponent_streak(inputs, start, target, third, ok):
+    opponents = ['panathinaikos', 'olympiacos', third]
+    records = [record(inputs, start + i, target, opponent) if i % 2 == 0
+               else record(inputs, start + i, opponent, target)
+               for i, opponent in enumerate(opponents)]
+    assert passed(inputs, records, 'big_opponent_streaks') == ok
+
+
 @pytest.mark.parametrize('r,ok', [(1, False), (2, False), (3, True)])
 @pytest.mark.parametrize('h,a', [('panathinaikos', 'paok'), ('aris', 'iraklis'), ('aris', 'aek')])
 def test_opening_derbies(inputs, r, ok, h, a):

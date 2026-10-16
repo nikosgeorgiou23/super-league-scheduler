@@ -55,8 +55,12 @@ def build_model(teams, slots, rules):
         model.add(second - first >= rules['min_rematch_round_difference'])
     for t in range(n):
         home = [sum(x[r, t, a] for a in range(n) if a != t) for r in range(26)]
+        big_opponents = [sum(x[r, t, a] + x[r, a, t]
+                             for a in range(n) if a != t and teams[a]['category'] == 'big')
+                         for r in range(26)]
         for r in range(24):
             model.add_linear_constraint(sum(home[r:r + 3]), 1, 2)
+            model.add(sum(big_opponents[r:r + 3]) <= rules['max_consecutive_big_opponents'])
     return model, y
 
 

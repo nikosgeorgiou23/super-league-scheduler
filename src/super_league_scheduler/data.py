@@ -10,6 +10,7 @@ def load_inputs(directory):
     expected = dict(rounds=26, rounds_per_half=13, matches_per_round=7,
                     max_derbies_per_round=2, no_derby_rounds=[1, 2],
                     max_consecutive_home=2, max_consecutive_away=2,
+                    max_consecutive_big_opponents=2,
                     min_rematch_round_difference=3, mirror_required=False,
                     mirror_forbidden=False, derby_slot_rules_enabled=True,
                     max_big_teams_saturday=1,

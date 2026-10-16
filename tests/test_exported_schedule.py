@@ -56,8 +56,11 @@ def test_forged_day_cannot_bypass_geography(schedule):
 
 
 @pytest.mark.parametrize('extension', ['json', 'csv'])
-def test_current_verified_export(extension):
+def test_previous_export_rejected_for_big_opponent_streaks(extension):
     matches = read_schedule(Path(f'examples/current/schedule.{extension}'))
     report = validate_schedule(matches, *load_inputs('data'))
-    assert report['valid'], json.dumps(report)
+    assert not report['valid']
+    assert not report['checks']['big_opponent_streaks']['passed']
+    assert all(check['passed'] for key, check in report['checks'].items()
+               if key != 'big_opponent_streaks')
     assert len(matches) == 182

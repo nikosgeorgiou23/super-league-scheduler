@@ -5,6 +5,23 @@ from ortools.sat.python import cp_model
 from super_league_scheduler.data import load_inputs
 from super_league_scheduler.model import build_model
 from super_league_scheduler.solve import solve
+from super_league_scheduler.solve import exclude_similar_schedule
+
+
+@pytest.mark.parametrize('candidate, allowed', [
+    ((0, 0, 1, 1), False),  # Changing only the slot is the same pairing.
+    ((0, 1, 0, 0), False),  # Reversing home/away is also the same pairing.
+    ((1, 0, 1, 0), True),   # Moving the pairing to another round is different.
+])
+def test_schedule_diversity_ignores_slots_and_venues(candidate, allowed):
+    model = cp_model.CpModel()
+    previous = (0, 0, 1, 0)
+    variables = {key: model.new_bool_var(str(key)) for key in (previous, candidate)}
+    model.add_exactly_one(list(variables.values()))
+    exclude_similar_schedule(model, variables, lambda var: var is variables[previous], 1)
+    model.add(variables[candidate] == 1)
+    status = cp_model.CpSolver().solve(model)
+    assert status == (cp_model.OPTIMAL if allowed else cp_model.INFEASIBLE)
 
 
 @pytest.fixture(scope='module')
@@ -16,6 +33,22 @@ def test_model_is_valid_and_has_no_objective(built):
     model, _ = built
     assert model.validate() == ''
     assert not model.has_objective()
+
+
+@pytest.mark.parametrize('start', [0, 11, 12, 23])
+@pytest.mark.parametrize('target', ['volos', 'paok'])
+def test_model_forbids_three_big_opponents(built, start, target):
+    original, variables = built
+    model = original.clone()
+    teams, _, _ = load_inputs('data')
+    ids = {t['id']: i for i, t in enumerate(teams)}
+    for i, opponent in enumerate(['panathinaikos', 'olympiacos', 'aek']):
+        h, a = (ids[target], ids[opponent]) if i % 2 == 0 else (ids[opponent], ids[target])
+        model.add(sum(var for (r, hh, aa, s), var in variables.items()
+                      if r == start + i and hh == h and aa == a) == 1)
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = 5
+    assert solver.solve(model) == cp_model.INFEASIBLE
 
 
 @pytest.mark.parametrize('r', [0, 1])

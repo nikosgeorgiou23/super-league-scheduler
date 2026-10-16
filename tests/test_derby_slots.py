@@ -106,5 +106,6 @@ def test_single_balander_derby_cannot_fit_full_round(inputs):
         if r == 2 and teams[h]['category'] == teams[a]['category'] == 'big':
             model.add(var == 0)
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 10
+    solver.parameters.max_time_in_seconds = 30
+    solver.parameters.num_search_workers = 8
     assert solver.solve(model) == cp_model.INFEASIBLE

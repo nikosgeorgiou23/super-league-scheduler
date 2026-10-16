@@ -8,7 +8,7 @@ from pathlib import Path
 from .data import load_inputs, derby_kind
 
 CHECKS = ('structure', 'participation', 'pairings', 'venues', 'slots',
-          'geography', 'derbies', 'derby_slots', 'saturday_big', 'streaks', 'rematches', 'metadata')
+          'geography', 'derbies', 'derby_slots', 'saturday_big', 'streaks', 'big_opponent_streaks', 'rematches', 'metadata')
 
 
 def validate_schedule(matches, teams, slots, rules):
@@ -18,6 +18,7 @@ def validate_schedule(matches, teams, slots, rules):
     team = {t['id']: t for t in teams}
     slot = {s['id']: s for s in slots}
     rounds, pairs, appearances = defaultdict(list), defaultdict(list), defaultdict(list)
+    big_opponents = defaultdict(int)
     if not isinstance(matches, list):
         matches = []
         fail('structure', 'Schedule must be a list')
@@ -38,6 +39,8 @@ def validate_schedule(matches, teams, slots, rules):
         pairs[tuple(sorted((h, a)))].append(m)
         appearances[h, r].append(True)
         appearances[a, r].append(False)
+        big_opponents[h, r] += team[a]['category'] == 'big'
+        big_opponents[a, r] += team[h]['category'] == 'big'
         expected = {k: slot[s][k] for k in ('day', 'start_earliest', 'start_latest')}
         expected.update(home_name=team[h]['name'], away_name=team[a]['name'],
                         venue=h, derby=derby_kind(team[h], team[a]))
@@ -105,6 +108,8 @@ def validate_schedule(matches, teams, slots, rules):
             fail('rematches', f'{pair}: rematches too close')
     for t in team:
         for r in range(1, 25):
+            if sum(big_opponents[t, rr] for rr in range(r, r + 3)) > rules['max_consecutive_big_opponents']:
+                fail('big_opponent_streaks', f'{t}: three big opponents at rounds {r}-{r + 2}')
             window = [appearances[t, rr] for rr in range(r, r + 3)]
             if all(len(v) == 1 for v in window) and len({v[0] for v in window}) == 1:
                 fail('streaks', f'{t}: three identical venues at rounds {r}–{r + 2}')
