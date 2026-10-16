@@ -1,0 +1,92 @@
+{
+  "json": {
+    "valid": true,
+    "checks": {
+      "structure": {
+        "passed": true,
+        "errors": []
+      },
+      "participation": {
+        "passed": true,
+        "errors": []
+      },
+      "pairings": {
+        "passed": true,
+        "errors": []
+      },
+      "venues": {
+        "passed": true,
+        "errors": []
+      },
+      "slots": {
+        "passed": true,
+        "errors": []
+      },
+      "geography": {
+        "passed": true,
+        "errors": []
+      },
+      "derbies": {
+        "passed": true,
+        "errors": []
+      },
+      "streaks": {
+        "passed": true,
+        "errors": []
+      },
+      "rematches": {
+        "passed": true,
+        "errors": []
+      },
+      "metadata": {
+        "passed": true,
+        "errors": []
+      }
+    }
+  },
+  "csv": {
+    "valid": true,
+    "checks": {
+      "structure": {
+        "passed": true,
+        "errors": []
+      },
+      "participation": {
+        "passed": true,
+        "errors": []
+      },
+      "pairings": {
+        "passed": true,
+        "errors": []
+      },
+      "venues": {
+        "passed": true,
+        "errors": []
+      },
+      "slots": {
+        "passed": true,
+        "errors": []
+      },
+      "geography": {
+        "passed": true,
+        "errors": []
+      },
+      "derbies": {
+        "passed": true,
+        "errors": []
+      },
+      "streaks": {
+        "passed": true,
+        "errors": []
+      },
+      "rematches": {
+        "passed": true,
+        "errors": []
+      },
+      "metadata": {
+        "passed": true,
+        "errors": []
+      }
+    }
+  }
+}

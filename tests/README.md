@@ -9,4 +9,6 @@ Tests will cover invalid schedules and boundary cases as the implementation is a
 - Three-game home/away runs, including across rounds 13 and 14.
 - Rematches at round differences 2 (invalid) and 3 (valid).
 
-No automated tests or solver are implemented in this initial scaffold.
+Run `python -m pytest -q` after `python -m pip install -e ".[test]"`.
+Boundary tests feed independent records into the validator and inspect the relevant
+check category; partial records are deliberately not claimed to be valid schedules.

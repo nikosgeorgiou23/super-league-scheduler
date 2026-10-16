@@ -8,7 +8,14 @@ version = "0.1.0"
 description = "Constraint-based scheduling demo for a 14-team football league"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["ortools>=9.15,<10"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+super-league-solve = "super_league_scheduler.solve:main"
+super-league-validate = "super_league_scheduler.validate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
