@@ -1,0 +1,100 @@
+[
+  {
+    "id": "panathinaikos",
+    "name": "Παναθηναϊκός",
+    "category": "big",
+    "city": "athens",
+    "home_conflict_group": "athens"
+  },
+  {
+    "id": "olympiacos",
+    "name": "Ολυμπιακός",
+    "category": "big",
+    "city": "athens",
+    "home_conflict_group": "athens"
+  },
+  {
+    "id": "aek",
+    "name": "ΑΕΚ",
+    "category": "big",
+    "city": "athens",
+    "home_conflict_group": "athens"
+  },
+  {
+    "id": "paok",
+    "name": "ΠΑΟΚ",
+    "category": "big",
+    "city": "thessaloniki",
+    "home_conflict_group": "thessaloniki"
+  },
+  {
+    "id": "aris",
+    "name": "Άρης",
+    "category": "balander",
+    "city": "thessaloniki",
+    "home_conflict_group": "thessaloniki"
+  },
+  {
+    "id": "iraklis",
+    "name": "Ηρακλής",
+    "category": "balander",
+    "city": "thessaloniki",
+    "home_conflict_group": "thessaloniki"
+  },
+  {
+    "id": "atromitos",
+    "name": "Ατρόμητος",
+    "category": "other",
+    "city": "athens",
+    "home_conflict_group": null
+  },
+  {
+    "id": "kifisia",
+    "name": "Κηφισιά",
+    "category": "other",
+    "city": "athens",
+    "home_conflict_group": null
+  },
+  {
+    "id": "kalamata",
+    "name": "Καλαμάτα",
+    "category": "other",
+    "city": "kalamata",
+    "home_conflict_group": null
+  },
+  {
+    "id": "asteras_tripolis",
+    "name": "Αστέρας Τρίπολης",
+    "category": "other",
+    "city": "tripoli",
+    "home_conflict_group": null
+  },
+  {
+    "id": "panetolikos",
+    "name": "Παναιτωλικός",
+    "category": "other",
+    "city": "agrinio",
+    "home_conflict_group": null
+  },
+  {
+    "id": "ofi",
+    "name": "ΟΦΗ",
+    "category": "other",
+    "city": "heraklion",
+    "home_conflict_group": null
+  },
+  {
+    "id": "levadiakos",
+    "name": "Λεβαδειακός",
+    "category": "other",
+    "city": "livadeia",
+    "home_conflict_group": null
+  },
+  {
+    "id": "volos",
+    "name": "Βόλος",
+    "category": "other",
+    "city": "volos",
+    "home_conflict_group": null
+  }
+]

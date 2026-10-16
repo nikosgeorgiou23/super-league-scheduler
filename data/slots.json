@@ -1,0 +1,47 @@
+{
+  "timezone": "Europe/Athens",
+  "slots": [
+    {
+      "id": "S1",
+      "day": "saturday",
+      "start_earliest": "16:00",
+      "start_latest": "17:00"
+    },
+    {
+      "id": "S2",
+      "day": "saturday",
+      "start_earliest": "18:00",
+      "start_latest": "19:00"
+    },
+    {
+      "id": "S3",
+      "day": "saturday",
+      "start_earliest": "20:00",
+      "start_latest": "21:00"
+    },
+    {
+      "id": "S4",
+      "day": "sunday",
+      "start_earliest": "16:00",
+      "start_latest": "17:00"
+    },
+    {
+      "id": "S5",
+      "day": "sunday",
+      "start_earliest": "17:00",
+      "start_latest": "18:00"
+    },
+    {
+      "id": "S6",
+      "day": "sunday",
+      "start_earliest": "18:00",
+      "start_latest": "19:00"
+    },
+    {
+      "id": "S7",
+      "day": "sunday",
+      "start_earliest": "20:00",
+      "start_latest": "21:00"
+    }
+  ]
+}
