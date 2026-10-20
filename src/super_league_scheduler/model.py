@@ -1,16 +1,59 @@
-"""Full feasibility model without an objective or fixed round-robin template."""
+﻿"""Unrestricted double round robin and television-value optimization."""
+from fractions import Fraction
 from itertools import combinations
+import math
 from ortools.sat.python import cp_model
-from .data import derby_kind
+
+SCALE = 10000
+ROUNDING = 'Python round: nearest integer, ties to even, per match-slot coefficient'
 
 
-def build_model(teams, slots, rules):
+def objective_units(balance, scale=SCALE):
+    if not math.isfinite(balance) or balance < 0:
+        raise ValueError('Lambda must be nonnegative and finite')
+    if type(scale) is not int or scale <= 0:
+        raise ValueError('Scale must be a positive integer')
+    weight = Fraction(str(balance))
+    # Leave headroom below int64 and exact-double reporting (2**53).
+    if (26 + float(weight)) * 14 * scale * weight.denominator >= 2**50:
+        raise ValueError('Objective may overflow safe integer reporting; reduce lambda precision or scale')
+    return weight.numerator, weight.denominator
+
+
+def add_value_objective(model, round_values, upper, balance, scale=SCALE):
+    numerator, denominator = objective_units(balance, scale)
+    highest = model.new_int_var(0, upper, 'U_max')
+    lowest = model.new_int_var(0, upper, 'U_min')
+    model.add_max_equality(highest, round_values)
+    model.add_min_equality(lowest, round_values)
+    model.maximize(denominator * sum(round_values) - numerator * (highest - lowest))
+
+
+def forbid_full_mirror(model, comparisons):
+    """At least one fixture differs; each difference is an equivalence."""
+    differences = []
+    for index, (first, reversed_second) in enumerate(comparisons):
+        d = model.new_bool_var(f'mirror_difference_{index}')
+        model.add(first != reversed_second).only_enforce_if(d)
+        model.add(first == reversed_second).only_enforce_if(d.Not())
+        differences.append(d)
+    model.add_bool_or(differences)
+
+
+def build_model(teams, slots, rules, scenario, balance=3, mode='optimization', scale=SCALE):
+    numerator, denominator = objective_units(balance, scale)
+    if mode not in ('optimization', 'feasibility'):
+        raise ValueError('Unknown search mode')
     model = cp_model.CpModel()
     x, y = {}, {}
     n = len(teams)
+    big = {i for i, t in enumerate(teams) if t['id'] in scenario['big_four']}
+    draws = scenario['attractiveness']
+    round_values = []
     for r in range(26):
         slot_vars = [[] for _ in slots]
         geo = {}
+        objective = []
         for h in range(n):
             for a in range(n):
                 if h == a:
@@ -18,9 +61,6 @@ def build_model(teams, slots, rules):
                 x[r, h, a] = model.new_bool_var(f'x_{r}_{h}_{a}')
                 choices = []
                 for s, slot in enumerate(slots):
-                    if ('big' in (teams[h]['category'], teams[a]['category'])
-                            and slot['id'] not in rules['big_team_allowed_slots']):
-                        continue
                     v = model.new_bool_var(f'y_{r}_{h}_{a}_{s}')
                     y[r, h, a, s] = v
                     choices.append(v)
@@ -28,72 +68,35 @@ def build_model(teams, slots, rules):
                     group = teams[h]['home_conflict_group']
                     if group:
                         geo.setdefault((group, slot['day']), []).append(v)
+                    coefficient = round((draws[teams[h]['id']][r] + draws[teams[a]['id']][r]) * slot['value'] * scale)
+                    objective.append(coefficient * v)
                 model.add(sum(choices) == x[r, h, a])
         for t in range(n):
             model.add(sum(x[r, t, a] + x[r, a, t] for a in range(n) if a != t) == 1)
         for values in slot_vars:
             model.add_exactly_one(values)
         for values in geo.values():
-            model.add(sum(values) <= rules['max_home_per_conflict_group_per_day'])
-        # Count individual big-team appearances on Saturday, not just matches.
-        model.add(sum(v * ((teams[h]['category'] == 'big') +
-                           (teams[a]['category'] == 'big'))
-                      for (rr, h, a, s), v in y.items()
-                      if rr == r and slots[s]['day'] == 'saturday')
-                  <= rules['max_big_teams_saturday'])
-        if rules['derby_slot_rules_enabled']:
-            _add_derby_slots(model, r, x, y, teams, slots)
-        model.add(sum(x[r, h, a] for h in range(n) for a in range(n)
-                      if h != a and derby_kind(teams[h], teams[a]))
-                  <= (0 if r + 1 in rules['no_derby_rounds'] else rules['max_derbies_per_round']))
+            model.add(sum(values) <= 1)
+        u = model.new_int_var(0, 14 * scale, f'U_{r}')
+        model.add(u == sum(objective))
+        round_values.append(u)
+    comparisons = []
     for h, a in combinations(range(n), 2):
         for start in (0, 13):
             model.add(sum(x[r, h, a] + x[r, a, h] for r in range(start, start + 13)) == 1)
         model.add(sum(x[r, h, a] for r in range(26)) == 1)
-        first = sum((r + 1) * (x[r, h, a] + x[r, a, h]) for r in range(13))
-        second = sum((r + 1) * (x[r, h, a] + x[r, a, h]) for r in range(13, 26))
-        model.add(second - first >= rules['min_rematch_round_difference'])
+        model.add(sum(x[r, h, a] + x[r, a, h] for r in (12, 13)) <= 1)
+        for r in range(13):
+            # Difference iff a directed fixture is absent from its reversed round.
+            for i, j in ((h, a), (a, h)):
+                comparisons.append((x[r, i, j], x[r + 13, j, i]))
+    forbid_full_mirror(model, comparisons)
     for t in range(n):
         home = [sum(x[r, t, a] for a in range(n) if a != t) for r in range(26)]
-        big_opponents = [sum(x[r, t, a] + x[r, a, t]
-                             for a in range(n) if a != t and teams[a]['category'] == 'big')
-                         for r in range(26)]
+        opponents = [sum(x[r, t, a] + x[r, a, t] for a in big if a != t) for r in range(26)]
         for r in range(24):
             model.add_linear_constraint(sum(home[r:r + 3]), 1, 2)
-            model.add(sum(big_opponents[r:r + 3]) <= rules['max_consecutive_big_opponents'])
+            model.add(sum(opponents[r:r + 3]) <= 2)
+    if mode == 'optimization':
+        add_value_objective(model, round_values, 14 * scale, balance, scale)
     return model, y
-
-
-def _add_derby_slots(model, r, x, y, teams, slots):
-    """Enforce the exhaustive round-level derby cases with reified counts."""
-    pairs = [(h, a) for h in range(len(teams)) for a in range(len(teams))
-             if h != a and derby_kind(teams[h], teams[a])]
-    big_count = sum(x[r, h, a] for h, a in pairs
-                    if derby_kind(teams[h], teams[a]) == 'big')
-    small_count = sum(x[r, h, a] for h, a in pairs
-                      if derby_kind(teams[h], teams[a]) == 'small')
-    cases = {}
-    for big, small in ((0, 0), (0, 1), (1, 0), (0, 2), (2, 0), (1, 1)):
-        flag = model.new_bool_var(f'derby_case_{r}_{big}_{small}')
-        model.add(big_count == big).only_enforce_if(flag)
-        model.add(small_count == small).only_enforce_if(flag)
-        cases[big, small] = flag
-    model.add_exactly_one(list(cases.values()))
-    for (rr, h, a, s), var in y.items():
-        if rr != r or (h, a) not in pairs:
-            continue
-        kind = derby_kind(teams[h], teams[a])
-        balander_pair = teams[h]['category'] == teams[a]['category'] == 'balander'
-        for (big, small), flag in cases.items():
-            if (big, small) == (0, 0):
-                continue
-            if big + small == 1:
-                allowed = {'S3'} if balander_pair else {'S7'}
-            elif big == 2 or small == 2:
-                allowed = {'S6', 'S7'}
-            elif kind == 'big':
-                allowed = {'S7'}
-            else:
-                allowed = {'S3'} if balander_pair else {'S6'}
-            if slots[s]['id'] not in allowed:
-                model.add(var == 0).only_enforce_if(flag)

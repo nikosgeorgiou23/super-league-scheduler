@@ -2,24 +2,10 @@
   "rounds": 26,
   "rounds_per_half": 13,
   "matches_per_round": 7,
-  "big_team_allowed_slots": [
-    "S3",
-    "S4",
-    "S6",
-    "S7"
-  ],
-  "max_derbies_per_round": 2,
-  "no_derby_rounds": [
-    1,
-    2
-  ],
+  "max_consecutive_big_opponents": 2,
+  "max_home_per_conflict_group_per_day": 1,
+  "full_mirror_forbidden": true,
   "max_consecutive_home": 2,
   "max_consecutive_away": 2,
-  "max_consecutive_big_opponents": 2,
-  "min_rematch_round_difference": 3,
-  "mirror_required": false,
-  "mirror_forbidden": false,
-  "derby_slot_rules_enabled": true,
-  "max_home_per_conflict_group_per_day": 1,
-  "max_big_teams_saturday": 1
+  "no_immediate_rematch_between_halves": true
 }

@@ -1,24 +1,63 @@
-"""Independent validation of exported records, without importing the model."""
+﻿"""Independent record validation and KPI recomputation; no OR-Tools imports."""
 import argparse
 import csv
 import json
+import math
+import statistics
+import sys
 from collections import Counter, defaultdict
+from fractions import Fraction
 from itertools import combinations
 from pathlib import Path
-from .data import load_inputs, derby_kind
+from .data import load_inputs, ratings, prepare_scenario
 
 CHECKS = ('structure', 'participation', 'pairings', 'venues', 'slots',
-          'geography', 'derbies', 'derby_slots', 'saturday_big', 'streaks', 'big_opponent_streaks', 'rematches', 'metadata')
+          'geography', 'streaks', 'big_opponent_streaks', 'transition', 'mirror', 'metadata', 'kpis')
 
 
-def validate_schedule(matches, teams, slots, rules):
+def compute_kpis(matches, slots, scenario, balance=3, scale=10000):
+    if not math.isfinite(balance) or balance < 0 or type(scale) is not int or scale <= 0:
+        raise ValueError('Invalid lambda or scale')
+    values, integers = [0.0] * 26, [0] * 26
+    by_slot = {s['id']: s for s in slots}
+    draws = scenario['attractiveness']
+    for m in matches:
+        r = m['round'] - 1
+        value = (draws[m['home']][r] + draws[m['away']][r]) * by_slot[m['slot']]['value']
+        values[r] += value
+        integers[r] += round(value * scale)
+    weight = Fraction(str(balance))
+    spread = max(values) - min(values)
+    scaled = weight.denominator * sum(integers) - weight.numerator * (max(integers) - min(integers))
+    return dict(round_values=values, total=sum(values), minimum=min(values), maximum=max(values),
+                range=spread, standard_deviation=statistics.pstdev(values),
+                Z=sum(values) - balance * spread, scaled_round_values=integers,
+                scaled_objective=scaled, objective_divisor=scale * weight.denominator)
+
+
+def mirror_summary(matches):
+    rounds = defaultdict(set)
+    for m in matches:
+        rounds[m['round']].add((m['home'], m['away']))
+    counts = [len(rounds[r] & {(a, h) for h, a in rounds[r + 13]}) for r in range(1, 14)]
+    return dict(match_counts=counts, rounds=[r + 1 for r, n in enumerate(counts) if n == 7],
+                total_matches=sum(counts))
+
+
+def validate_schedule(matches, teams, slots, rules, scenario=None, balance=3, scale=10000, declared_kpis=None):
     errors = {key: [] for key in CHECKS}
     def fail(key, message):
         errors[key].append(message)
     team = {t['id']: t for t in teams}
     slot = {s['id']: s for s in slots}
+    if scenario is None:
+        raise ValueError('Scenario required to compute Big 4 independently')
+    computed, big = ratings(teams, scenario['source'], scenario['rating_config'])
+    prepare_scenario(teams, scenario['source'], scenario['rating_config'], reuse=scenario)
     rounds, pairs, appearances = defaultdict(list), defaultdict(list), defaultdict(list)
+    opponents = defaultdict(list)
     big_opponents = defaultdict(int)
+    clean = []
     if not isinstance(matches, list):
         matches = []
         fail('structure', 'Schedule must be a list')
@@ -30,25 +69,24 @@ def validate_schedule(matches, teams, slots, rules):
             continue
         r, h, a, s = (m.get(k) for k in ('round', 'home', 'away', 'slot'))
         if (type(r) is not int or r not in range(1, 27) or
-                not isinstance(h, str) or not isinstance(a, str) or
-                h not in team or a not in team or h == a or
+                not isinstance(h, str) or not isinstance(a, str) or h not in team or a not in team or h == a or
                 not isinstance(s, str) or s not in slot):
             fail('structure', f'Record {index}: invalid round, teams or slot')
             continue
+        clean.append(m)
         rounds[r].append(m)
         pairs[tuple(sorted((h, a)))].append(m)
         appearances[h, r].append(True)
         appearances[a, r].append(False)
-        big_opponents[h, r] += team[a]['category'] == 'big'
-        big_opponents[a, r] += team[h]['category'] == 'big'
+        opponents[h, r].append(a)
+        opponents[a, r].append(h)
+        big_opponents[h, r] += a in big
+        big_opponents[a, r] += h in big
         expected = {k: slot[s][k] for k in ('day', 'start_earliest', 'start_latest')}
-        expected.update(home_name=team[h]['name'], away_name=team[a]['name'],
-                        venue=h, derby=derby_kind(team[h], team[a]))
+        expected.update(home_name=team[h]['name'], away_name=team[a]['name'], venue=h)
         for key, value in expected.items():
             if key not in m or m[key] != value:
                 fail('metadata', f'Record {index}: incorrect {key}')
-        if 'big' in (team[h]['category'], team[a]['category']) and s not in rules['big_team_allowed_slots']:
-            fail('slots', f'Round {r}: big team in {s}')
     for r in range(1, 27):
         ms = rounds[r]
         if len(ms) != 7:
@@ -60,41 +98,8 @@ def validate_schedule(matches, teams, slots, rules):
             fail('slots', f'Round {r}: slots must each be used once')
         hosts = Counter((team[m['home']]['home_conflict_group'], slot[m['slot']]['day'])
                         for m in ms if team[m['home']]['home_conflict_group'])
-        if any(v > rules['max_home_per_conflict_group_per_day'] for v in hosts.values()):
+        if any(v > 1 for v in hosts.values()):
             fail('geography', f'Round {r}: protected hosts on same day')
-        saturday_big = sum(
-            (team[m['home']]['category'] == 'big') +
-            (team[m['away']]['category'] == 'big')
-            for m in ms if slot[m['slot']]['day'] == 'saturday')
-        if saturday_big > rules['max_big_teams_saturday']:
-            fail('saturday_big', f'Round {r}: {saturday_big} big teams on Saturday')
-        if rules['derby_slot_rules_enabled']:
-            derbies = [m for m in ms if derby_kind(team[m['home']], team[m['away']])]
-            big = [m for m in derbies
-                   if derby_kind(team[m['home']], team[m['away']]) == 'big']
-            small = [m for m in derbies
-                     if derby_kind(team[m['home']], team[m['away']]) == 'small']
-            if len(derbies) == 1:
-                m = derbies[0]
-                balander_pair = all(team[m[k]]['category'] == 'balander'
-                                    for k in ('home', 'away'))
-                expected_slot = 'S3' if balander_pair else 'S7'
-                if m['slot'] != expected_slot:
-                    fail('derby_slots', f'Round {r}: single derby requires {expected_slot}')
-            elif len(derbies) == 2:
-                if len(big) == 2 or len(small) == 2:
-                    if sorted(m['slot'] for m in derbies) != ['S6', 'S7']:
-                        fail('derby_slots', f'Round {r}: two same-type derbies require S6/S7')
-                else:
-                    m = small[0]
-                    balander_pair = all(team[m[k]]['category'] == 'balander'
-                                        for k in ('home', 'away'))
-                    expected_slot = 'S3' if balander_pair else 'S6'
-                    if m['slot'] != expected_slot or big[0]['slot'] != 'S7':
-                        fail('derby_slots', f'Round {r}: mixed derbies require {expected_slot}/S7')
-        count = sum(derby_kind(team[m['home']], team[m['away']]) is not None for m in ms)
-        if count > (0 if r in rules['no_derby_rounds'] else rules['max_derbies_per_round']):
-            fail('derbies', f'Round {r}: {count} derbies')
     for pair in combinations(sorted(team), 2):
         ms = pairs[pair]
         halves = [[m for m in ms if lo <= m['round'] <= hi] for lo, hi in ((1, 13), (14, 26))]
@@ -104,40 +109,87 @@ def validate_schedule(matches, teams, slots, rules):
         first, second = halves[0][0], halves[1][0]
         if first['home'] != second['away'] or first['away'] != second['home']:
             fail('venues', f'{pair}: venues not reversed')
-        if second['round'] - first['round'] < rules['min_rematch_round_difference']:
-            fail('rematches', f'{pair}: rematches too close')
     for t in team:
         for r in range(1, 25):
-            if sum(big_opponents[t, rr] for rr in range(r, r + 3)) > rules['max_consecutive_big_opponents']:
-                fail('big_opponent_streaks', f'{t}: three big opponents at rounds {r}-{r + 2}')
             window = [appearances[t, rr] for rr in range(r, r + 3)]
             if all(len(v) == 1 for v in window) and len({v[0] for v in window}) == 1:
-                fail('streaks', f'{t}: three identical venues at rounds {r}–{r + 2}')
-    return {'valid': not any(errors.values()),
+                fail('streaks', f'{t}: three consecutive home or away games at rounds {r}-{r + 2}')
+            if sum(big_opponents[t, rr] for rr in range(r, r + 3)) > 2:
+                fail('big_opponent_streaks', f'{t}: three Big 4 opponents at rounds {r}-{r + 2}')
+        before = set(opponents[t, 13])
+        after = set(opponents[t, 14])
+        if before & after:
+            fail('transition', f'{t}: repeated opponent in rounds 13-14 {sorted(before & after)}')
+    mirrors = mirror_summary(clean)
+    if len(mirrors['rounds']) == 13:
+        fail('mirror', 'Full mirrored second half')
+    kpis = compute_kpis(clean, slots, scenario, balance, scale)
+    if declared_kpis is not None:
+        for k, value in kpis.items():
+            actual = declared_kpis.get(k)
+            if isinstance(value, list):
+                ok = isinstance(actual, list) and len(actual) == len(value) and all(
+                    isinstance(a, (int, float)) and math.isclose(a, b, rel_tol=1e-10, abs_tol=1e-9) for a, b in zip(actual, value))
+            else:
+                ok = isinstance(actual, (int, float)) and math.isclose(actual, value, rel_tol=1e-10, abs_tol=1e-9)
+            if not ok:
+                fail('kpis', f'Incorrect declared {k}')
+    return {'valid': not any(errors.values()), 'kpis': kpis, 'mirrors': mirrors,
             'checks': {key: {'passed': not value, 'errors': value} for key, value in errors.items()}}
 
 
 def read_schedule(path):
     path = Path(path)
     if path.suffix.lower() == '.csv':
-        with path.open(encoding='utf-8', newline='') as stream:
+        with path.open(encoding='utf-8-sig', newline='') as stream:
             records = list(csv.DictReader(stream))
         for m in records:
             m['round'] = int(m['round'])
-            m['derby'] = m['derby'] or None
         return records
-    return json.loads(path.read_text(encoding='utf-8'))
+    return json.loads(path.read_text(encoding='utf-8-sig'))
+
+
+def validate_export(path, input_dir='data'):
+    path = Path(path)
+    manifest = json.loads((path.parent / 'run.json').read_text(encoding='utf-8'))
+    scenario = json.loads((path.parent / 'scenario.json').read_text(encoding='utf-8'))
+    status = json.loads((path.parent / 'status.json').read_text(encoding='utf-8'))
+    if status['status'] not in ('FEASIBLE', 'OPTIMAL'):
+        return {'valid': False, 'error': f"No solution: {status['status']}"}
+    local = load_inputs(input_dir)
+    if list(local) != [manifest['teams'], manifest['slots'], manifest['rules']]:
+        raise ValueError('Input configuration differs from exported snapshot')
+    cfg = manifest['configuration']
+    report = validate_schedule(read_schedule(path), *local, scenario, cfg['balance'], cfg['scale'], status['kpis'])
+    if status.get('mirrors') != report['mirrors']:
+        report['valid'] = False
+        report['checks']['mirror']['errors'].append('Incorrect declared mirrors')
+        report['checks']['mirror']['passed'] = False
+    if cfg['mode'] == 'optimization' and status['scaled_objective'] != report['kpis']['scaled_objective']:
+        report['valid'] = False
+        report['checks']['kpis']['errors'].append('Solver objective differs from recomputed integer objective')
+        report['checks']['kpis']['passed'] = False
+    if cfg['mode'] == 'optimization':
+        objective, bound = status['scaled_objective'], status['scaled_bound']
+        expected_gap = (bound - objective) / max(1, abs(objective))
+        if not math.isfinite(bound) or bound < objective or not math.isclose(status['relative_gap'], expected_gap, abs_tol=1e-12):
+            report['valid'] = False
+            report['checks']['kpis']['errors'].append('Inconsistent bound or relative gap')
+            report['checks']['kpis']['passed'] = False
+    return report
 
 
 def main():
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('schedule', type=Path)
     parser.add_argument('--input-dir', type=Path, default=Path('data'))
-    parser.add_argument('--output-dir', type=Path, default=Path('outputs'))
+    parser.add_argument('--output-dir', type=Path, default=Path('outputs/check'))
     args = parser.parse_args()
     try:
-        report = validate_schedule(read_schedule(args.schedule), *load_inputs(args.input_dir))
-    except (ValueError, KeyError, OSError, TypeError) as exc:
+        report = validate_export(args.schedule, args.input_dir)
+    except (ValueError, KeyError, OSError, TypeError, OverflowError) as exc:
         report = {'valid': False, 'error': str(exc)}
     args.output_dir.mkdir(parents=True, exist_ok=True)
     (args.output_dir / 'validation.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')

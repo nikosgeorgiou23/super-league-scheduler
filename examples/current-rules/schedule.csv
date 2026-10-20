@@ -1,0 +1,183 @@
+round,home,away,home_name,away_name,venue,slot,day,start_earliest,start_latest
+1,volos,kifisia,Βόλος,Κηφισιά,volos,S1,saturday,16:00,17:00
+1,kalamata,levadiakos,Καλαμάτα,Λεβαδειακός,kalamata,S2,saturday,18:00,19:00
+1,panathinaikos,iraklis,Παναθηναϊκός,Ηρακλής,panathinaikos,S3,saturday,20:00,21:00
+1,atromitos,aris,Ατρόμητος,Άρης,atromitos,S4,sunday,16:00,17:00
+1,asteras_tripolis,panetolikos,Αστέρας Τρίπολης,Παναιτωλικός,asteras_tripolis,S5,sunday,17:00,18:00
+1,paok,ofi,ΠΑΟΚ,ΟΦΗ,paok,S6,sunday,18:00,19:00
+1,olympiacos,aek,Ολυμπιακός,ΑΕΚ,olympiacos,S7,sunday,20:00,21:00
+2,volos,kalamata,Βόλος,Καλαμάτα,volos,S1,saturday,16:00,17:00
+2,panathinaikos,kifisia,Παναθηναϊκός,Κηφισιά,panathinaikos,S2,saturday,18:00,19:00
+2,iraklis,olympiacos,Ηρακλής,Ολυμπιακός,iraklis,S3,saturday,20:00,21:00
+2,levadiakos,atromitos,Λεβαδειακός,Ατρόμητος,levadiakos,S4,sunday,16:00,17:00
+2,panetolikos,ofi,Παναιτωλικός,ΟΦΗ,panetolikos,S5,sunday,17:00,18:00
+2,aek,asteras_tripolis,ΑΕΚ,Αστέρας Τρίπολης,aek,S6,sunday,18:00,19:00
+2,aris,paok,Άρης,ΠΑΟΚ,aris,S7,sunday,20:00,21:00
+3,iraklis,atromitos,Ηρακλής,Ατρόμητος,iraklis,S1,saturday,16:00,17:00
+3,ofi,volos,ΟΦΗ,Βόλος,ofi,S2,saturday,18:00,19:00
+3,panetolikos,panathinaikos,Παναιτωλικός,Παναθηναϊκός,panetolikos,S3,saturday,20:00,21:00
+3,kalamata,aek,Καλαμάτα,ΑΕΚ,kalamata,S4,sunday,16:00,17:00
+3,asteras_tripolis,paok,Αστέρας Τρίπολης,ΠΑΟΚ,asteras_tripolis,S5,sunday,17:00,18:00
+3,aris,levadiakos,Άρης,Λεβαδειακός,aris,S6,sunday,18:00,19:00
+3,kifisia,olympiacos,Κηφισιά,Ολυμπιακός,kifisia,S7,sunday,20:00,21:00
+4,asteras_tripolis,iraklis,Αστέρας Τρίπολης,Ηρακλής,asteras_tripolis,S1,saturday,16:00,17:00
+4,ofi,kifisia,ΟΦΗ,Κηφισιά,ofi,S2,saturday,18:00,19:00
+4,olympiacos,kalamata,Ολυμπιακός,Καλαμάτα,olympiacos,S3,saturday,20:00,21:00
+4,atromitos,aek,Ατρόμητος,ΑΕΚ,atromitos,S4,sunday,16:00,17:00
+4,volos,levadiakos,Βόλος,Λεβαδειακός,volos,S5,sunday,17:00,18:00
+4,paok,panetolikos,ΠΑΟΚ,Παναιτωλικός,paok,S6,sunday,18:00,19:00
+4,panathinaikos,aris,Παναθηναϊκός,Άρης,panathinaikos,S7,sunday,20:00,21:00
+5,panetolikos,kalamata,Παναιτωλικός,Καλαμάτα,panetolikos,S1,saturday,16:00,17:00
+5,atromitos,asteras_tripolis,Ατρόμητος,Αστέρας Τρίπολης,atromitos,S2,saturday,18:00,19:00
+5,aek,iraklis,ΑΕΚ,Ηρακλής,aek,S3,saturday,20:00,21:00
+5,levadiakos,ofi,Λεβαδειακός,ΟΦΗ,levadiakos,S4,sunday,16:00,17:00
+5,kifisia,paok,Κηφισιά,ΠΑΟΚ,kifisia,S5,sunday,17:00,18:00
+5,volos,panathinaikos,Βόλος,Παναθηναϊκός,volos,S6,sunday,18:00,19:00
+5,olympiacos,aris,Ολυμπιακός,Άρης,olympiacos,S7,sunday,20:00,21:00
+6,kalamata,atromitos,Καλαμάτα,Ατρόμητος,kalamata,S1,saturday,16:00,17:00
+6,aek,levadiakos,ΑΕΚ,Λεβαδειακός,aek,S2,saturday,18:00,19:00
+6,aris,ofi,Άρης,ΟΦΗ,aris,S3,saturday,20:00,21:00
+6,panetolikos,olympiacos,Παναιτωλικός,Ολυμπιακός,panetolikos,S4,sunday,16:00,17:00
+6,asteras_tripolis,volos,Αστέρας Τρίπολης,Βόλος,asteras_tripolis,S5,sunday,17:00,18:00
+6,iraklis,kifisia,Ηρακλής,Κηφισιά,iraklis,S6,sunday,18:00,19:00
+6,panathinaikos,paok,Παναθηναϊκός,ΠΑΟΚ,panathinaikos,S7,sunday,20:00,21:00
+7,volos,iraklis,Βόλος,Ηρακλής,volos,S1,saturday,16:00,17:00
+7,kifisia,panetolikos,Κηφισιά,Παναιτωλικός,kifisia,S2,saturday,18:00,19:00
+7,ofi,aek,ΟΦΗ,ΑΕΚ,ofi,S3,saturday,20:00,21:00
+7,kalamata,aris,Καλαμάτα,Άρης,kalamata,S4,sunday,16:00,17:00
+7,levadiakos,asteras_tripolis,Λεβαδειακός,Αστέρας Τρίπολης,levadiakos,S5,sunday,17:00,18:00
+7,paok,atromitos,ΠΑΟΚ,Ατρόμητος,paok,S6,sunday,18:00,19:00
+7,olympiacos,panathinaikos,Ολυμπιακός,Παναθηναϊκός,olympiacos,S7,sunday,20:00,21:00
+8,asteras_tripolis,kalamata,Αστέρας Τρίπολης,Καλαμάτα,asteras_tripolis,S1,saturday,16:00,17:00
+8,atromitos,ofi,Ατρόμητος,ΟΦΗ,atromitos,S2,saturday,18:00,19:00
+8,paok,iraklis,ΠΑΟΚ,Ηρακλής,paok,S3,saturday,20:00,21:00
+8,panetolikos,aek,Παναιτωλικός,ΑΕΚ,panetolikos,S4,sunday,16:00,17:00
+8,kifisia,aris,Κηφισιά,Άρης,kifisia,S5,sunday,17:00,18:00
+8,panathinaikos,levadiakos,Παναθηναϊκός,Λεβαδειακός,panathinaikos,S6,sunday,18:00,19:00
+8,volos,olympiacos,Βόλος,Ολυμπιακός,volos,S7,sunday,20:00,21:00
+9,iraklis,levadiakos,Ηρακλής,Λεβαδειακός,iraklis,S1,saturday,16:00,17:00
+9,atromitos,kifisia,Ατρόμητος,Κηφισιά,atromitos,S2,saturday,18:00,19:00
+9,aek,volos,ΑΕΚ,Βόλος,aek,S3,saturday,20:00,21:00
+9,kalamata,paok,Καλαμάτα,ΠΑΟΚ,kalamata,S4,sunday,16:00,17:00
+9,aris,panetolikos,Άρης,Παναιτωλικός,aris,S5,sunday,17:00,18:00
+9,asteras_tripolis,panathinaikos,Αστέρας Τρίπολης,Παναθηναϊκός,asteras_tripolis,S6,sunday,18:00,19:00
+9,olympiacos,ofi,Ολυμπιακός,ΟΦΗ,olympiacos,S7,sunday,20:00,21:00
+10,kalamata,kifisia,Καλαμάτα,Κηφισιά,kalamata,S1,saturday,16:00,17:00
+10,iraklis,aris,Ηρακλής,Άρης,iraklis,S2,saturday,18:00,19:00
+10,aek,panathinaikos,ΑΕΚ,Παναθηναϊκός,aek,S3,saturday,20:00,21:00
+10,ofi,asteras_tripolis,ΟΦΗ,Αστέρας Τρίπολης,ofi,S4,sunday,16:00,17:00
+10,volos,atromitos,Βόλος,Ατρόμητος,volos,S5,sunday,17:00,18:00
+10,levadiakos,panetolikos,Λεβαδειακός,Παναιτωλικός,levadiakos,S6,sunday,18:00,19:00
+10,olympiacos,paok,Ολυμπιακός,ΠΑΟΚ,olympiacos,S7,sunday,20:00,21:00
+11,panetolikos,iraklis,Παναιτωλικός,Ηρακλής,panetolikos,S1,saturday,16:00,17:00
+11,kifisia,asteras_tripolis,Κηφισιά,Αστέρας Τρίπολης,kifisia,S2,saturday,18:00,19:00
+11,aris,volos,Άρης,Βόλος,aris,S3,saturday,20:00,21:00
+11,panathinaikos,atromitos,Παναθηναϊκός,Ατρόμητος,panathinaikos,S4,sunday,16:00,17:00
+11,ofi,kalamata,ΟΦΗ,Καλαμάτα,ofi,S5,sunday,17:00,18:00
+11,levadiakos,olympiacos,Λεβαδειακός,Ολυμπιακός,levadiakos,S6,sunday,18:00,19:00
+11,paok,aek,ΠΑΟΚ,ΑΕΚ,paok,S7,sunday,20:00,21:00
+12,iraklis,ofi,Ηρακλής,ΟΦΗ,iraklis,S1,saturday,16:00,17:00
+12,volos,panetolikos,Βόλος,Παναιτωλικός,volos,S2,saturday,18:00,19:00
+12,aek,kifisia,ΑΕΚ,Κηφισιά,aek,S3,saturday,20:00,21:00
+12,panathinaikos,kalamata,Παναθηναϊκός,Καλαμάτα,panathinaikos,S4,sunday,16:00,17:00
+12,asteras_tripolis,aris,Αστέρας Τρίπολης,Άρης,asteras_tripolis,S5,sunday,17:00,18:00
+12,paok,levadiakos,ΠΑΟΚ,Λεβαδειακός,paok,S6,sunday,18:00,19:00
+12,atromitos,olympiacos,Ατρόμητος,Ολυμπιακός,atromitos,S7,sunday,20:00,21:00
+13,kalamata,iraklis,Καλαμάτα,Ηρακλής,kalamata,S1,saturday,16:00,17:00
+13,atromitos,panetolikos,Ατρόμητος,Παναιτωλικός,atromitos,S2,saturday,18:00,19:00
+13,olympiacos,asteras_tripolis,Ολυμπιακός,Αστέρας Τρίπολης,olympiacos,S3,saturday,20:00,21:00
+13,ofi,panathinaikos,ΟΦΗ,Παναθηναϊκός,ofi,S4,sunday,16:00,17:00
+13,levadiakos,kifisia,Λεβαδειακός,Κηφισιά,levadiakos,S5,sunday,17:00,18:00
+13,volos,paok,Βόλος,ΠΑΟΚ,volos,S6,sunday,18:00,19:00
+13,aris,aek,Άρης,ΑΕΚ,aris,S7,sunday,20:00,21:00
+14,kalamata,volos,Καλαμάτα,Βόλος,kalamata,S1,saturday,16:00,17:00
+14,panetolikos,levadiakos,Παναιτωλικός,Λεβαδειακός,panetolikos,S2,saturday,18:00,19:00
+14,aris,atromitos,Άρης,Ατρόμητος,aris,S3,saturday,20:00,21:00
+14,kifisia,aek,Κηφισιά,ΑΕΚ,kifisia,S4,sunday,16:00,17:00
+14,asteras_tripolis,ofi,Αστέρας Τρίπολης,ΟΦΗ,asteras_tripolis,S5,sunday,17:00,18:00
+14,iraklis,paok,Ηρακλής,ΠΑΟΚ,iraklis,S6,sunday,18:00,19:00
+14,panathinaikos,olympiacos,Παναθηναϊκός,Ολυμπιακός,panathinaikos,S7,sunday,20:00,21:00
+15,iraklis,volos,Ηρακλής,Βόλος,iraklis,S1,saturday,16:00,17:00
+15,levadiakos,kalamata,Λεβαδειακός,Καλαμάτα,levadiakos,S2,saturday,18:00,19:00
+15,aek,atromitos,ΑΕΚ,Ατρόμητος,aek,S3,saturday,20:00,21:00
+15,ofi,aris,ΟΦΗ,Άρης,ofi,S4,sunday,16:00,17:00
+15,asteras_tripolis,kifisia,Αστέρας Τρίπολης,Κηφισιά,asteras_tripolis,S5,sunday,17:00,18:00
+15,olympiacos,panetolikos,Ολυμπιακός,Παναιτωλικός,olympiacos,S6,sunday,18:00,19:00
+15,paok,panathinaikos,ΠΑΟΚ,Παναθηναϊκός,paok,S7,sunday,20:00,21:00
+16,atromitos,kalamata,Ατρόμητος,Καλαμάτα,atromitos,S1,saturday,16:00,17:00
+16,levadiakos,iraklis,Λεβαδειακός,Ηρακλής,levadiakos,S2,saturday,18:00,19:00
+16,paok,asteras_tripolis,ΠΑΟΚ,Αστέρας Τρίπολης,paok,S3,saturday,20:00,21:00
+16,kifisia,panathinaikos,Κηφισιά,Παναθηναϊκός,kifisia,S4,sunday,16:00,17:00
+16,panetolikos,aris,Παναιτωλικός,Άρης,panetolikos,S5,sunday,17:00,18:00
+16,volos,aek,Βόλος,ΑΕΚ,volos,S6,sunday,18:00,19:00
+16,ofi,olympiacos,ΟΦΗ,Ολυμπιακός,ofi,S7,sunday,20:00,21:00
+17,kalamata,panetolikos,Καλαμάτα,Παναιτωλικός,kalamata,S1,saturday,16:00,17:00
+17,aris,kifisia,Άρης,Κηφισιά,aris,S2,saturday,18:00,19:00
+17,olympiacos,volos,Ολυμπιακός,Βόλος,olympiacos,S3,saturday,20:00,21:00
+17,iraklis,aek,Ηρακλής,ΑΕΚ,iraklis,S4,sunday,16:00,17:00
+17,asteras_tripolis,levadiakos,Αστέρας Τρίπολης,Λεβαδειακός,asteras_tripolis,S5,sunday,17:00,18:00
+17,panathinaikos,ofi,Παναθηναϊκός,ΟΦΗ,panathinaikos,S6,sunday,18:00,19:00
+17,atromitos,paok,Ατρόμητος,ΠΑΟΚ,atromitos,S7,sunday,20:00,21:00
+18,levadiakos,volos,Λεβαδειακός,Βόλος,levadiakos,S1,saturday,16:00,17:00
+18,ofi,panetolikos,ΟΦΗ,Παναιτωλικός,ofi,S2,saturday,18:00,19:00
+18,paok,kalamata,ΠΑΟΚ,Καλαμάτα,paok,S3,saturday,20:00,21:00
+18,iraklis,panathinaikos,Ηρακλής,Παναθηναϊκός,iraklis,S4,sunday,16:00,17:00
+18,kifisia,atromitos,Κηφισιά,Ατρόμητος,kifisia,S5,sunday,17:00,18:00
+18,asteras_tripolis,olympiacos,Αστέρας Τρίπολης,Ολυμπιακός,asteras_tripolis,S6,sunday,18:00,19:00
+18,aek,aris,ΑΕΚ,Άρης,aek,S7,sunday,20:00,21:00
+19,kalamata,ofi,Καλαμάτα,ΟΦΗ,kalamata,S1,saturday,16:00,17:00
+19,aris,iraklis,Άρης,Ηρακλής,aris,S2,saturday,18:00,19:00
+19,olympiacos,levadiakos,Ολυμπιακός,Λεβαδειακός,olympiacos,S3,saturday,20:00,21:00
+19,volos,asteras_tripolis,Βόλος,Αστέρας Τρίπολης,volos,S4,sunday,16:00,17:00
+19,panetolikos,atromitos,Παναιτωλικός,Ατρόμητος,panetolikos,S5,sunday,17:00,18:00
+19,paok,kifisia,ΠΑΟΚ,Κηφισιά,paok,S6,sunday,18:00,19:00
+19,panathinaikos,aek,Παναθηναϊκός,ΑΕΚ,panathinaikos,S7,sunday,20:00,21:00
+20,iraklis,asteras_tripolis,Ηρακλής,Αστέρας Τρίπολης,iraklis,S1,saturday,16:00,17:00
+20,kifisia,ofi,Κηφισιά,ΟΦΗ,kifisia,S2,saturday,18:00,19:00
+20,panathinaikos,volos,Παναθηναϊκός,Βόλος,panathinaikos,S3,saturday,20:00,21:00
+20,atromitos,levadiakos,Ατρόμητος,Λεβαδειακός,atromitos,S4,sunday,16:00,17:00
+20,aek,kalamata,ΑΕΚ,Καλαμάτα,aek,S5,sunday,17:00,18:00
+20,panetolikos,paok,Παναιτωλικός,ΠΑΟΚ,panetolikos,S6,sunday,18:00,19:00
+20,aris,olympiacos,Άρης,Ολυμπιακός,aris,S7,sunday,20:00,21:00
+21,asteras_tripolis,atromitos,Αστέρας Τρίπολης,Ατρόμητος,asteras_tripolis,S1,saturday,16:00,17:00
+21,iraklis,panetolikos,Ηρακλής,Παναιτωλικός,iraklis,S2,saturday,18:00,19:00
+21,olympiacos,kifisia,Ολυμπιακός,Κηφισιά,olympiacos,S3,saturday,20:00,21:00
+21,volos,aris,Βόλος,Άρης,volos,S4,sunday,16:00,17:00
+21,kalamata,panathinaikos,Καλαμάτα,Παναθηναϊκός,kalamata,S5,sunday,17:00,18:00
+21,levadiakos,aek,Λεβαδειακός,ΑΕΚ,levadiakos,S6,sunday,18:00,19:00
+21,ofi,paok,ΟΦΗ,ΠΑΟΚ,ofi,S7,sunday,20:00,21:00
+22,panetolikos,asteras_tripolis,Παναιτωλικός,Αστέρας Τρίπολης,panetolikos,S1,saturday,16:00,17:00
+22,levadiakos,panathinaikos,Λεβαδειακός,Παναθηναϊκός,levadiakos,S2,saturday,18:00,19:00
+22,aris,kalamata,Άρης,Καλαμάτα,aris,S3,saturday,20:00,21:00
+22,kifisia,volos,Κηφισιά,Βόλος,kifisia,S4,sunday,16:00,17:00
+22,atromitos,iraklis,Ατρόμητος,Ηρακλής,atromitos,S5,sunday,17:00,18:00
+22,aek,ofi,ΑΕΚ,ΟΦΗ,aek,S6,sunday,18:00,19:00
+22,paok,olympiacos,ΠΑΟΚ,Ολυμπιακός,paok,S7,sunday,20:00,21:00
+23,kifisia,levadiakos,Κηφισιά,Λεβαδειακός,kifisia,S1,saturday,16:00,17:00
+23,ofi,iraklis,ΟΦΗ,Ηρακλής,ofi,S2,saturday,18:00,19:00
+23,panathinaikos,asteras_tripolis,Παναθηναϊκός,Αστέρας Τρίπολης,panathinaikos,S3,saturday,20:00,21:00
+23,kalamata,olympiacos,Καλαμάτα,Ολυμπιακός,kalamata,S4,sunday,16:00,17:00
+23,atromitos,volos,Ατρόμητος,Βόλος,atromitos,S5,sunday,17:00,18:00
+23,aek,panetolikos,ΑΕΚ,Παναιτωλικός,aek,S6,sunday,18:00,19:00
+23,paok,aris,ΠΑΟΚ,Άρης,paok,S7,sunday,20:00,21:00
+24,panetolikos,kifisia,Παναιτωλικός,Κηφισιά,panetolikos,S1,saturday,16:00,17:00
+24,iraklis,kalamata,Ηρακλής,Καλαμάτα,iraklis,S2,saturday,18:00,19:00
+24,volos,ofi,Βόλος,ΟΦΗ,volos,S3,saturday,20:00,21:00
+24,asteras_tripolis,aek,Αστέρας Τρίπολης,ΑΕΚ,asteras_tripolis,S4,sunday,16:00,17:00
+24,levadiakos,paok,Λεβαδειακός,ΠΑΟΚ,levadiakos,S5,sunday,17:00,18:00
+24,olympiacos,atromitos,Ολυμπιακός,Ατρόμητος,olympiacos,S6,sunday,18:00,19:00
+24,aris,panathinaikos,Άρης,Παναθηναϊκός,aris,S7,sunday,20:00,21:00
+25,kifisia,iraklis,Κηφισιά,Ηρακλής,kifisia,S1,saturday,16:00,17:00
+25,ofi,atromitos,ΟΦΗ,Ατρόμητος,ofi,S2,saturday,18:00,19:00
+25,aek,olympiacos,ΑΕΚ,Ολυμπιακός,aek,S3,saturday,20:00,21:00
+25,panathinaikos,panetolikos,Παναθηναϊκός,Παναιτωλικός,panathinaikos,S4,sunday,16:00,17:00
+25,kalamata,asteras_tripolis,Καλαμάτα,Αστέρας Τρίπολης,kalamata,S5,sunday,17:00,18:00
+25,paok,volos,ΠΑΟΚ,Βόλος,paok,S6,sunday,18:00,19:00
+25,levadiakos,aris,Λεβαδειακός,Άρης,levadiakos,S7,sunday,20:00,21:00
+26,kifisia,kalamata,Κηφισιά,Καλαμάτα,kifisia,S1,saturday,16:00,17:00
+26,panetolikos,volos,Παναιτωλικός,Βόλος,panetolikos,S2,saturday,18:00,19:00
+26,olympiacos,iraklis,Ολυμπιακός,Ηρακλής,olympiacos,S3,saturday,20:00,21:00
+26,aris,asteras_tripolis,Άρης,Αστέρας Τρίπολης,aris,S4,sunday,16:00,17:00
+26,ofi,levadiakos,ΟΦΗ,Λεβαδειακός,ofi,S5,sunday,17:00,18:00
+26,atromitos,panathinaikos,Ατρόμητος,Παναθηναϊκός,atromitos,S6,sunday,18:00,19:00
+26,aek,paok,ΑΕΚ,ΠΑΟΚ,aek,S7,sunday,20:00,21:00

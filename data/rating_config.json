@@ -1,0 +1,9 @@
+{
+  "history_weights": [
+    0.2,
+    0.3,
+    0.5
+  ],
+  "history_factor": 0.3,
+  "market_factor": 7.5
+}

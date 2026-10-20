@@ -1,0 +1,123 @@
+{
+  "provenance": "User-provided standings images and Transfermarkt total roster market values; not independently verified; not budgets.",
+  "market_value_reference_date": "2026-10-19",
+  "seasons": [
+    "2023-24",
+    "2024-25",
+    "2025-26"
+  ],
+  "teams": {
+    "panathinaikos": {
+      "positions": [
+        4,
+        2,
+        4
+      ],
+      "market_value_million_eur": 126.35
+    },
+    "olympiacos": {
+      "positions": [
+        3,
+        1,
+        2
+      ],
+      "market_value_million_eur": 185.65
+    },
+    "aek": {
+      "positions": [
+        2,
+        4,
+        1
+      ],
+      "market_value_million_eur": 86.45
+    },
+    "paok": {
+      "positions": [
+        1,
+        3,
+        3
+      ],
+      "market_value_million_eur": 114.35
+    },
+    "aris": {
+      "positions": [
+        5,
+        5,
+        5
+      ],
+      "market_value_million_eur": 43.05
+    },
+    "iraklis": {
+      "positions": [
+        15,
+        15,
+        15
+      ],
+      "market_value_million_eur": 11.75
+    },
+    "atromitos": {
+      "positions": [
+        11,
+        7,
+        9
+      ],
+      "market_value_million_eur": 14.4
+    },
+    "kifisia": {
+      "positions": [
+        13,
+        15,
+        10
+      ],
+      "market_value_million_eur": 11.05
+    },
+    "kalamata": {
+      "positions": [
+        15,
+        15,
+        15
+      ],
+      "market_value_million_eur": 12.08
+    },
+    "asteras_tripolis": {
+      "positions": [
+        8,
+        6,
+        11
+      ],
+      "market_value_million_eur": 12.35
+    },
+    "panetolikos": {
+      "positions": [
+        9,
+        10,
+        12
+      ],
+      "market_value_million_eur": 13.53
+    },
+    "ofi": {
+      "positions": [
+        10,
+        8,
+        7
+      ],
+      "market_value_million_eur": 21.78
+    },
+    "levadiakos": {
+      "positions": [
+        15,
+        9,
+        6
+      ],
+      "market_value_million_eur": 19.23
+    },
+    "volos": {
+      "positions": [
+        12,
+        11,
+        8
+      ],
+      "market_value_million_eur": 13.8
+    }
+  }
+}

@@ -5,43 +5,50 @@
       "id": "S1",
       "day": "saturday",
       "start_earliest": "16:00",
-      "start_latest": "17:00"
+      "start_latest": "17:00",
+      "value": 0.4
     },
     {
       "id": "S2",
       "day": "saturday",
       "start_earliest": "18:00",
-      "start_latest": "19:00"
+      "start_latest": "19:00",
+      "value": 0.5
     },
     {
       "id": "S3",
       "day": "saturday",
       "start_earliest": "20:00",
-      "start_latest": "21:00"
+      "start_latest": "21:00",
+      "value": 0.8
     },
     {
       "id": "S4",
       "day": "sunday",
       "start_earliest": "16:00",
-      "start_latest": "17:00"
+      "start_latest": "17:00",
+      "value": 0.7
     },
     {
       "id": "S5",
       "day": "sunday",
       "start_earliest": "17:00",
-      "start_latest": "18:00"
+      "start_latest": "18:00",
+      "value": 0.6
     },
     {
       "id": "S6",
       "day": "sunday",
       "start_earliest": "18:00",
-      "start_latest": "19:00"
+      "start_latest": "19:00",
+      "value": 0.9
     },
     {
       "id": "S7",
       "day": "sunday",
       "start_earliest": "20:00",
-      "start_latest": "21:00"
+      "start_latest": "21:00",
+      "value": 1.0
     }
   ]
 }

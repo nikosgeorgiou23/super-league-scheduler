@@ -1,107 +1,68 @@
-"""Boundary tests use records, never solver variables or solver assertions."""
+﻿"""Record-level rule tests, independent of model variables."""
 import pytest
-from super_league_scheduler.data import load_inputs
-from super_league_scheduler.validate import validate_schedule
+from super_league_scheduler.validate import validate_schedule, mirror_summary
+from conftest import record
 
 
-@pytest.fixture
-def inputs():
-    return load_inputs('data')
+def check(inputs, scenario, records, key):
+    return validate_schedule(records, *inputs, scenario)['checks'][key]['passed']
 
+@pytest.mark.parametrize('start', [1,12,13,24])
+@pytest.mark.parametrize('target', ['volos','paok'])
+@pytest.mark.parametrize('third,ok', [('aek',False),('ofi',True)])
+def test_big_opponent_windows(inputs, scenario, start, target, third, ok):
+    records=[record(inputs,start+i,target,a) for i,a in enumerate(['panathinaikos','olympiacos',third])]
+    assert check(inputs,scenario,records,'big_opponent_streaks') == ok
 
-def record(inputs, r, h, a, s='S2'):
-    teams, slots, _ = inputs
-    from super_league_scheduler.data import derby_kind
-    t = {t['id']: t for t in teams}
-    slot = next(slot for slot in slots if slot['id'] == s)
-    return dict(round=r, home=h, away=a, home_name=t[h]['name'], away_name=t[a]['name'],
-                venue=h, slot=s, day=slot['day'], start_earliest=slot['start_earliest'],
-                start_latest=slot['start_latest'], derby=derby_kind(t[h], t[a]))
+@pytest.mark.parametrize('first', [10,11,12,13])
+@pytest.mark.parametrize('second', [14,15,16,17])
+def test_all_boundary_combinations(inputs, scenario, first, second):
+    records=[record(inputs,first,'volos','ofi'),record(inputs,second,'ofi','volos')]
+    assert check(inputs,scenario,records,'transition') == ((first, second) != (13, 14))
 
+@pytest.mark.parametrize('hosts', [('panathinaikos','aek'),('paok','aris')])
+@pytest.mark.parametrize('s,ok', [('S3',False),('S4',True)])
+def test_geography(inputs,scenario,hosts,s,ok):
+    records=[record(inputs,3,hosts[0],'volos'),record(inputs,3,hosts[1],'ofi',s)]
+    assert check(inputs,scenario,records,'geography') == ok
 
-def passed(inputs, records, check):
-    return validate_schedule(records, *inputs)['checks'][check]['passed']
+def test_exempt_hosts(inputs,scenario):
+    records=[record(inputs,3,'panathinaikos','paok'),record(inputs,3,'atromitos','aek','S3'),record(inputs,3,'kifisia','aris','S1')]
+    assert check(inputs,scenario,records,'geography')
 
+def test_venues_pairings_and_malformed(inputs,scenario):
+    ms=[record(inputs,3,'volos','ofi'),record(inputs,16,'volos','ofi')]
+    assert not check(inputs,scenario,ms,'venues')
+    ms[1]['round']=12
+    assert not check(inputs,scenario,ms,'pairings')
+    assert not validate_schedule([None,{'round':True,'home':[]}],*inputs,scenario)['valid']
+    assert not check(inputs,scenario,[ms[0],ms[0]],'participation')
 
-@pytest.mark.parametrize('start', [1, 12, 13, 24])
-@pytest.mark.parametrize('target', ['volos', 'paok'])
-@pytest.mark.parametrize('third,ok', [('aek', False), ('ofi', True)])
-def test_big_opponent_streak(inputs, start, target, third, ok):
-    opponents = ['panathinaikos', 'olympiacos', third]
-    records = [record(inputs, start + i, target, opponent) if i % 2 == 0
-               else record(inputs, start + i, opponent, target)
-               for i, opponent in enumerate(opponents)]
-    assert passed(inputs, records, 'big_opponent_streaks') == ok
+def test_forged_day(inputs,scenario):
+    ms=[record(inputs,3,'aek','volos'),record(inputs,3,'panathinaikos','ofi','S3')]
+    ms[1]['day']='sunday'
+    assert not check(inputs,scenario,ms,'geography')
+    assert not check(inputs,scenario,ms,'metadata')
 
+def test_mirror_ignores_slots_and_requires_all_rounds(inputs,scenario):
+    ids=[t['id'] for t in inputs[0]]
+    ms=[]
+    for r in range(1,14):
+        for i in range(7):
+            h,a=ids[2*i:2*i+2]
+            ms += [record(inputs,r,h,a,f'S{i+1}'),record(inputs,r+13,a,h,f'S{7-i}')]
+    assert not check(inputs,scenario,ms,'mirror')
+    assert mirror_summary(ms)['rounds']==list(range(1,14))
+    ms[-1]['home'],ms[-1]['away']=ms[-1]['away'],ms[-1]['home']
+    assert check(inputs,scenario,ms,'mirror')
+    assert len(mirror_summary(ms)['rounds'])==12
 
-@pytest.mark.parametrize('r,ok', [(1, False), (2, False), (3, True)])
-@pytest.mark.parametrize('h,a', [('panathinaikos', 'paok'), ('aris', 'iraklis'), ('aris', 'aek')])
-def test_opening_derbies(inputs, r, ok, h, a):
-    assert passed(inputs, [record(inputs, r, h, a)], 'derbies') == ok
-
-
-def test_derby_limit(inputs):
-    records = [record(inputs, 3, h, a) for h, a in
-               [('panathinaikos', 'olympiacos'), ('aek', 'paok'), ('aris', 'iraklis')]]
-    assert passed(inputs, records[:2], 'derbies')
-    assert not passed(inputs, records, 'derbies')
-
-
-@pytest.mark.parametrize('hosts', [('panathinaikos', 'aek'), ('paok', 'aris')])
-@pytest.mark.parametrize('s,ok', [('S3', False), ('S4', True)])
-def test_geography_per_day(inputs, hosts, s, ok):
-    records = [record(inputs, 3, hosts[0], 'volos'), record(inputs, 3, hosts[1], 'ofi', s)]
-    assert passed(inputs, records, 'geography') == ok
-
-
-def test_exempt_hosts_and_away_teams(inputs):
-    records = [record(inputs, 3, 'panathinaikos', 'paok'),
-               record(inputs, 3, 'atromitos', 'aek', 'S3'),
-               record(inputs, 3, 'kifisia', 'aris', 'S1')]
-    assert passed(inputs, records, 'geography')
-
-
-@pytest.mark.parametrize('start', [12, 13])
-@pytest.mark.parametrize('home', [True, False])
-def test_streak_across_halves(inputs, start, home):
-    records = [record(inputs, r, 'volos', a) if home else record(inputs, r, a, 'volos')
-               for r, a in zip(range(start, start + 3), ['ofi', 'kifisia', 'kalamata'])]
-    assert not passed(inputs, records, 'streaks')
-    records[-1]['home'], records[-1]['away'] = records[-1]['away'], records[-1]['home']
-    assert passed(inputs, records, 'streaks')
-
-
-@pytest.mark.parametrize('difference,ok', [(2, False), (3, True)])
-def test_rematch_boundary(inputs, difference, ok):
-    records = [record(inputs, 13, 'volos', 'ofi'), record(inputs, 13 + difference, 'ofi', 'volos')]
-    assert passed(inputs, records, 'rematches') == ok
-
-
-def test_same_venue_and_wrong_half(inputs):
-    records = [record(inputs, 3, 'volos', 'ofi'), record(inputs, 16, 'volos', 'ofi')]
-    assert not passed(inputs, records, 'venues')
-    records[1]['round'] = 12
-    assert not passed(inputs, records, 'pairings')
-
-
-@pytest.mark.parametrize('h,a', [('panathinaikos', 'volos'), ('volos', 'paok')])
-@pytest.mark.parametrize('s,ok', [('S1', False), ('S5', False), ('S4', True)])
-def test_big_slots_both_venues(inputs, h, a, s, ok):
-    assert passed(inputs, [record(inputs, 3, h, a, s)], 'slots') is False  # incomplete rounds
-    errors = validate_schedule([record(inputs, 3, h, a, s)], *inputs)['checks']['slots']['errors']
-    assert any('big team' in e for e in errors) == (not ok)
-
-
-def test_malformed_and_duplicate(inputs):
-    assert not validate_schedule([None, {'round': True, 'home': []}], *inputs)['valid']
-    m = record(inputs, 3, 'volos', 'ofi')
-    assert not passed(inputs, [m, m], 'participation')
-    m['day'] = 'monday'
-    assert not passed(inputs, [m], 'metadata')
-
-
-def test_balander_derby_requires_s3(inputs):
-    m = record(inputs, 3, 'aris', 'iraklis', 'S1')
-    errors = validate_schedule([m], *inputs)['checks']['slots']['errors']
-    assert not any('big team' in e for e in errors)
-    assert not passed(inputs, [m], 'derby_slots')
+@pytest.mark.parametrize('start',[1,12,13,24])
+@pytest.mark.parametrize('home',[True,False])
+@pytest.mark.parametrize('pattern,ok',[( [True,True,True],False),([True,True,False],True),([True,False,True],True),([False,True,True],True)])
+def test_home_away_limit(inputs,scenario,start,home,pattern,ok):
+    records=[]
+    for i,(a,same) in enumerate(zip(['ofi','kifisia','kalamata'],pattern)):
+        h,away=('volos',a) if same==home else (a,'volos')
+        records.append(record(inputs,start+i,h,away))
+    assert check(inputs,scenario,records,'streaks')==ok

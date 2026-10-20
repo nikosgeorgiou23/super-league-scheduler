@@ -1,1 +1,1 @@
-"""Super League scheduling demo: initial project scaffold."""
+"""Super League scheduling optimization and independent record validation."""
