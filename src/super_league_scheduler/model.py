@@ -29,17 +29,6 @@ def add_value_objective(model, round_values, upper, balance, scale=SCALE):
     model.maximize(denominator * sum(round_values) - numerator * (highest - lowest))
 
 
-def forbid_full_mirror(model, comparisons):
-    """At least one fixture differs; each difference is an equivalence."""
-    differences = []
-    for index, (first, reversed_second) in enumerate(comparisons):
-        d = model.new_bool_var(f'mirror_difference_{index}')
-        model.add(first != reversed_second).only_enforce_if(d)
-        model.add(first == reversed_second).only_enforce_if(d.Not())
-        differences.append(d)
-    model.add_bool_or(differences)
-
-
 def build_model(teams, slots, rules, scenario, balance=3, mode='optimization', scale=SCALE):
     numerator, denominator = objective_units(balance, scale)
     if mode not in ('optimization', 'feasibility'):
@@ -74,23 +63,17 @@ def build_model(teams, slots, rules, scenario, balance=3, mode='optimization', s
         for t in range(n):
             model.add(sum(x[r, t, a] + x[r, a, t] for a in range(n) if a != t) == 1)
         for values in slot_vars:
-            model.add_exactly_one(values)
+            model.add_at_most_one(values)
         for values in geo.values():
             model.add(sum(values) <= 1)
         u = model.new_int_var(0, 14 * scale, f'U_{r}')
         model.add(u == sum(objective))
         round_values.append(u)
-    comparisons = []
     for h, a in combinations(range(n), 2):
         for start in (0, 13):
             model.add(sum(x[r, h, a] + x[r, a, h] for r in range(start, start + 13)) == 1)
         model.add(sum(x[r, h, a] for r in range(26)) == 1)
         model.add(sum(x[r, h, a] + x[r, a, h] for r in (12, 13)) <= 1)
-        for r in range(13):
-            # Difference iff a directed fixture is absent from its reversed round.
-            for i, j in ((h, a), (a, h)):
-                comparisons.append((x[r, i, j], x[r + 13, j, i]))
-    forbid_full_mirror(model, comparisons)
     for t in range(n):
         home = [sum(x[r, t, a] for a in range(n) if a != t) for r in range(26)]
         opponents = [sum(x[r, t, a] + x[r, a, t] for a in big if a != t) for r in range(26)]

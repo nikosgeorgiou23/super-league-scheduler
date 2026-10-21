@@ -49,6 +49,13 @@
       "start_earliest": "20:00",
       "start_latest": "21:00",
       "value": 1.0
+    },
+    {
+      "id": "S8",
+      "day": "monday",
+      "start_earliest": "18:00",
+      "start_latest": "19:00",
+      "value": 0.3
     }
   ]
 }

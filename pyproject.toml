@@ -12,6 +12,7 @@ dependencies = ["ortools>=9.15,<10"]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
+plot = ["matplotlib>=3.8,<4"]
 
 [project.scripts]
 super-league-solve = "super_league_scheduler.solve:main"

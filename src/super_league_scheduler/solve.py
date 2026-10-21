@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import importlib.util
 import math
 import sys
 import time
@@ -86,7 +87,8 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
     solver.parameters.num_search_workers = workers
     solver.parameters.stop_after_first_solution = mode == 'feasibility'
     write_json(output_dir / 'solver_parameters.json', dict(max_time_in_seconds=time_limit,
-               random_seed=seed, num_search_workers=workers, stop_after_first_solution=mode == 'feasibility'))
+               random_seed=seed, num_search_workers=workers,
+               stop_after_first_solution=mode == 'feasibility'))
     progress = Progress(mode == 'optimization')
     status = solver.solve(model, progress)
     result = dict(status=solver.status_name(status), configuration=cfg, ortools_version=ortools.__version__,
@@ -100,9 +102,9 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
         result['kpis'] = compute_kpis(matches, slots, scenario, balance, scale)
         result['mirrors'] = mirror_summary(matches)
         if mode == 'optimization':
-            result['scaled_objective'] = solver.objective_value
+            result['scaled_objective'] = result['kpis']['scaled_objective']
             result['scaled_bound'] = solver.best_objective_bound
-            result['relative_gap'] = max(0, (solver.best_objective_bound - solver.objective_value) / max(1, abs(solver.objective_value)))
+            result['relative_gap'] = max(0, (result['scaled_bound'] - result['scaled_objective']) / max(1, abs(result['scaled_objective'])))
         write_json(output_dir / 'schedule.json', matches)
         with (output_dir / 'schedule.csv').open('w', encoding='utf-8', newline='') as stream:
             writer = csv.DictWriter(stream, fieldnames=list(matches[0]))
@@ -137,9 +139,12 @@ def main():
     parser.add_argument('--mode', choices=['optimization', 'feasibility'], default='optimization')
     parser.add_argument('--attractiveness-file', type=Path)
     parser.add_argument('--scale', type=int, default=SCALE)
+    parser.add_argument('--show-chart', action='store_true', help='Save and open the round TV-value chart after a validated solution')
     parser.add_argument('--many', action='store_true', help='Legacy alias; runs normal optimization in a new directory')
     parser.add_argument('--min-different-matches', type=int, default=20, help='Deprecated; ignored')
     args = parser.parse_args()
+    if args.show_chart and importlib.util.find_spec('matplotlib') is None:
+        parser.error('Chart requires matplotlib: python -m pip install -e ".[plot]"')
     try:
         if args.many:
             args.output_dir = args.output_dir / datetime.now().strftime('run_%Y%m%d_%H%M%S_%f')
@@ -151,6 +156,12 @@ def main():
     print(json.dumps(result, ensure_ascii=True))
     if result['status'] in ('FEASIBLE', 'OPTIMAL'):
         print_schedule(read_schedule(args.output_dir / 'schedule.json'))
+        if args.show_chart and result['validated']:
+            from .plot import plot_round_values
+            chart = plot_round_values(result['kpis']['round_values'], args.output_dir / 'round_tv_value.png', show=True)
+            print(f'Chart: {chart}')
+    else:
+        print(f"No schedule found. Status: {result['status']}. No chart generated. See {args.output_dir / 'status.json'}")
     return 0 if result['validated'] else {'INFEASIBLE': 2, 'UNKNOWN': 3, 'MODEL_INVALID': 4}.get(result['status'], 1)
 
 

@@ -17,7 +17,7 @@ def test_model_valid_and_optimization(built,inputs,scenario):
 
 def force_match(model,variables,teams,r,h,a):
     ids={t['id']:i for i,t in enumerate(teams)}
-    model.add(sum(variables[r,ids[h],ids[a],s] for s in range(7))==1)
+    model.add(sum(variables[r,ids[h],ids[a],s] for s in range(1+max(key[3] for key in variables)))==1)
 
 @pytest.mark.parametrize('start',[0,11,12,23])
 @pytest.mark.parametrize('target',['volos','paok'])
@@ -80,19 +80,35 @@ def test_conflicting_input(tmp_path):
     from super_league_scheduler.data import load_inputs
     with pytest.raises(ValueError,match='conflict'): load_inputs(tmp_path)
 
-@pytest.mark.parametrize('different_round',[None,0,12])
-def test_model_full_mirror_equivalence(different_round):
-    from super_league_scheduler.model import forbid_full_mirror
-    m=cp_model.CpModel()
-    comparisons=[]
-    for r in range(13):
-        a,b=m.new_bool_var(f'a{r}'),m.new_bool_var(f'b{r}')
-        m.add(a==1)
-        m.add(b==int(r!=different_round))
-        comparisons.append((a,b))
-    forbid_full_mirror(m,comparisons)
-    status=cp_model.CpSolver().solve(m)
-    assert status==(cp_model.INFEASIBLE if different_round is None else cp_model.OPTIMAL)
+def test_full_mirror_is_feasible(built,inputs,scenario):
+    from super_league_scheduler.validate import read_schedule, validate_schedule
+    from super_league_scheduler.solve import extract_matches
+    model=built[0].clone()
+    model.clear_objective()
+    variables=built[1]
+    ids={t['id']:i for i,t in enumerate(inputs[0])}
+    # A fixed pairing fixture is used only in this regression test. Let the
+    # solver choose all venues and slots, while requiring a complete mirror.
+    for fixture in read_schedule('examples/current-rules/schedule.json'):
+        if fixture['round']>13:
+            continue
+        r=fixture['round']-1
+        h,a=ids[fixture['home']],ids[fixture['away']]
+        first=sum(variables[r,h,a,s] for s in range(len(inputs[1])))
+        reverse=sum(variables[r,a,h,s] for s in range(len(inputs[1])))
+        model.add(first+reverse==1)
+        model.add(first==sum(variables[r+13,a,h,s] for s in range(len(inputs[1]))))
+        model.add(reverse==sum(variables[r+13,h,a,s] for s in range(len(inputs[1]))))
+    model.add(sum(var for (r,h,a,s),var in variables.items() if r==0 and s==7)==1)
+    solver=cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds=30
+    solver.parameters.num_search_workers=1
+    assert solver.solve(model) in (cp_model.FEASIBLE,cp_model.OPTIMAL)
+    matches=extract_matches(solver.value,variables,inputs[0],inputs[1])
+    report=validate_schedule(matches,*inputs,scenario)
+    assert report['valid']
+    assert any(m['round']==1 and m['day']=='monday' for m in matches)
+    assert report['mirrors']['rounds']==list(range(1,14))
 
 @pytest.mark.parametrize('name',['UNKNOWN','INFEASIBLE','MODEL_INVALID'])
 def test_unsuccessful_statuses_do_not_export(tmp_path,monkeypatch,name):

@@ -4,7 +4,6 @@
   "matches_per_round": 7,
   "max_consecutive_big_opponents": 2,
   "max_home_per_conflict_group_per_day": 1,
-  "full_mirror_forbidden": true,
   "max_consecutive_home": 2,
   "max_consecutive_away": 2,
   "no_immediate_rematch_between_halves": true

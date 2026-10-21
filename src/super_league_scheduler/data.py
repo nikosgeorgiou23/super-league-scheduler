@@ -13,7 +13,7 @@ def load_inputs(directory):
     slots = sorted(config['slots'], key=lambda s: s['id'])
     expected = dict(rounds=26, rounds_per_half=13, matches_per_round=7,
                     max_consecutive_big_opponents=2,
-                    max_home_per_conflict_group_per_day=1, full_mirror_forbidden=True,
+                    max_home_per_conflict_group_per_day=1,
                     max_consecutive_home=2, max_consecutive_away=2,
                     no_immediate_rematch_between_halves=True)
     if rules != expected:
@@ -30,12 +30,14 @@ def load_inputs(directory):
         group = next((g for g, ids in protected.items() if t['id'] in ids), None)
         if t.get('home_conflict_group') != group or 'category' in t:
             raise ValueError('Invalid protected group or obsolete category')
-    if [s['id'] for s in slots] != [f'S{i}' for i in range(1, 8)]:
-        raise ValueError('Expected S1-S7')
+    if [s['id'] for s in slots] != [f'S{i}' for i in range(1, 9)]:
+        raise ValueError('Expected S1-S8')
     windows = [('16:00', '17:00'), ('18:00', '19:00'), ('20:00', '21:00'),
-               ('16:00', '17:00'), ('17:00', '18:00'), ('18:00', '19:00'), ('20:00', '21:00')]
+               ('16:00', '17:00'), ('17:00', '18:00'), ('18:00', '19:00'), ('20:00', '21:00'),
+               ('18:00', '19:00')]
+    days = ['saturday'] * 3 + ['sunday'] * 4 + ['monday']
     if config['timezone'] != 'Europe/Athens' or any(
-        s['day'] != ('saturday' if i < 3 else 'sunday') or
+        s['day'] != days[i] or
         (s['start_earliest'], s['start_latest']) != windows[i] or
         not math.isfinite(s['value']) or not 0 < s['value'] <= 1
         for i, s in enumerate(slots)):

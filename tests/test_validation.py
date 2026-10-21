@@ -51,7 +51,7 @@ def test_mirror_ignores_slots_and_requires_all_rounds(inputs,scenario):
         for i in range(7):
             h,a=ids[2*i:2*i+2]
             ms += [record(inputs,r,h,a,f'S{i+1}'),record(inputs,r+13,a,h,f'S{7-i}')]
-    assert not check(inputs,scenario,ms,'mirror')
+    assert check(inputs,scenario,ms,'mirror')
     assert mirror_summary(ms)['rounds']==list(range(1,14))
     ms[-1]['home'],ms[-1]['away']=ms[-1]['away'],ms[-1]['home']
     assert check(inputs,scenario,ms,'mirror')
@@ -66,3 +66,32 @@ def test_home_away_limit(inputs,scenario,start,home,pattern,ok):
         h,away=('volos',a) if same==home else (a,'volos')
         records.append(record(inputs,start+i,h,away))
     assert check(inputs,scenario,records,'streaks')==ok
+
+
+def monday_round(inputs):
+    return [record(inputs,1,h,a,s) for h,a,s in [
+        ('aek','volos','S1'),('panathinaikos','ofi','S4'),('olympiacos','kalamata','S8'),
+        ('atromitos','paok','S2'),('kifisia','aris','S3'),('levadiakos','iraklis','S5'),
+        ('asteras_tripolis','panetolikos','S7')]]
+
+
+def test_monday_allows_three_protected_hosts_and_one_unused_slot(inputs,scenario):
+    ms=monday_round(inputs)
+    # Repeat the round only to inspect slot/geography/metadata families;
+    # this fixture deliberately makes no claim about season pairings.
+    report=validate_schedule([dict(m,round=r) for r in range(1,27) for m in ms],*inputs,scenario)
+    for key in ['slots','geography','metadata']:
+        assert report['checks'][key]['passed']
+    assert len({m['slot'] for m in ms})==7
+    assert 'S6' not in {m['slot'] for m in ms}
+    from super_league_scheduler.validate import compute_kpis
+    expected=sum((scenario['attractiveness'][m['home']][0]+scenario['attractiveness'][m['away']][0])
+                 *next(s['value'] for s in inputs[1] if s['id']==m['slot']) for m in ms)
+    assert compute_kpis(ms,inputs[1],scenario)['round_values'][0]==pytest.approx(expected)
+
+
+def test_duplicate_monday_slot_rejected(inputs,scenario):
+    ms=monday_round(inputs)
+    ms[0]['slot']='S8'
+    assert not check(inputs,scenario,ms,'slots')
+    assert not check(inputs,scenario,ms,'geography')

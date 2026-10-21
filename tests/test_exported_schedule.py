@@ -84,6 +84,7 @@ def test_corrupted_saved_kpis(tmp_path,inputs):
     manifest=tmp_path/'run/run.json'
     snapshot=json.loads(manifest.read_text(encoding='utf-8'))
     snapshot['rules']=inputs[2]
+    snapshot['slots']=inputs[1]
     manifest.write_text(json.dumps(snapshot),encoding='utf-8')
     p=tmp_path/'run/status.json'
     s=json.loads(p.read_text())

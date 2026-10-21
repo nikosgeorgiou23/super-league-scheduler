@@ -94,8 +94,8 @@ def validate_schedule(matches, teams, slots, rules, scenario=None, balance=3, sc
         for t in team:
             if len(appearances[t, r]) != 1:
                 fail('participation', f'Round {r}: {t} must appear once')
-        if Counter(m['slot'] for m in ms) != Counter(slot.keys()):
-            fail('slots', f'Round {r}: slots must each be used once')
+        if len(ms) != 7 or any(count > 1 for count in Counter(m['slot'] for m in ms).values()):
+            fail('slots', f'Round {r}: expected 7 distinct slots from S1-S8')
         hosts = Counter((team[m['home']]['home_conflict_group'], slot[m['slot']]['day'])
                         for m in ms if team[m['home']]['home_conflict_group'])
         if any(v > 1 for v in hosts.values()):
@@ -121,8 +121,6 @@ def validate_schedule(matches, teams, slots, rules, scenario=None, balance=3, sc
         if before & after:
             fail('transition', f'{t}: repeated opponent in rounds 13-14 {sorted(before & after)}')
     mirrors = mirror_summary(clean)
-    if len(mirrors['rounds']) == 13:
-        fail('mirror', 'Full mirrored second half')
     kpis = compute_kpis(clean, slots, scenario, balance, scale)
     if declared_kpis is not None:
         for k, value in kpis.items():
