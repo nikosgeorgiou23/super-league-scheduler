@@ -6,6 +6,7 @@ import importlib.util
 import math
 import sys
 import time
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 import ortools
@@ -17,6 +18,25 @@ from .validate import read_schedule, validate_export, compute_kpis, mirror_summa
 
 def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + '\n', encoding='utf-8')
+
+
+def write_records(output_dir, matches, prefix='schedule'):
+    write_json(output_dir / f'{prefix}.json', matches)
+    with (output_dir / f'{prefix}.csv').open('w', encoding='utf-8', newline='') as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(matches[0]))
+        writer.writeheader()
+        writer.writerows(matches)
+
+
+def write_history(output_dir, history):
+    write_json(output_dir / 'alns_history.json', history)
+    fields = list(history[0]) if history else ['iteration', 'operator', 'repair_status']
+    with (output_dir / 'alns_history.csv').open('w', encoding='utf-8', newline='') as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        for event in history:
+            writer.writerow({k: json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v
+                             for k, v in event.items()})
 
 
 def print_schedule(matches):
@@ -54,7 +74,8 @@ class Progress(cp_model.CpSolverSolutionCallback):
 
 
 def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers=8,
-          balance=3, mode='optimization', attractiveness_file=None, scale=SCALE):
+          balance=3, mode='optimization', attractiveness_file=None, scale=SCALE,
+          alns_config=None):
     started = time.monotonic()
     if not math.isfinite(time_limit) or time_limit <= 0:
         raise ValueError('Time limit must be positive and finite')
@@ -62,6 +83,10 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
         raise ValueError('Seeds must be 0..2147483647')
     if type(workers) is not int or not 1 <= workers <= 256:
         raise ValueError('Workers must be 1..256')
+    if alns_config is not None:
+        alns_config.validate()
+        if balance != 3 or mode != 'optimization':
+            raise ValueError('ALNS requires --lambda 3 and optimization mode')
     numerator, denominator = objective_units(balance, scale)
     teams, slots, rules = load_inputs(input_dir)
     root = Path(input_dir)
@@ -77,6 +102,8 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
                balance=balance, mode=mode, scale=scale, rounding_policy=ROUNDING,
                lambda_numerator=numerator, lambda_denominator=denominator,
                objective_divisor=scale * denominator, attractiveness_file=str(attractiveness_file) if attractiveness_file else None)
+    if alns_config is not None:
+        cfg['alns'] = asdict(alns_config)
     write_json(output_dir / 'scenario.json', scenario)
     write_json(output_dir / 'run.json', dict(configuration=cfg, teams=teams, slots=slots, rules=rules,
                                             ortools_version=ortools.__version__))
@@ -85,10 +112,10 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
     solver.parameters.max_time_in_seconds = time_limit
     solver.parameters.random_seed = seed
     solver.parameters.num_search_workers = workers
-    solver.parameters.stop_after_first_solution = mode == 'feasibility'
+    solver.parameters.stop_after_first_solution = mode == 'feasibility' or alns_config is not None
     write_json(output_dir / 'solver_parameters.json', dict(max_time_in_seconds=time_limit,
                random_seed=seed, num_search_workers=workers,
-               stop_after_first_solution=mode == 'feasibility'))
+               stop_after_first_solution=mode == 'feasibility' or alns_config is not None))
     progress = Progress(mode == 'optimization')
     status = solver.solve(model, progress)
     result = dict(status=solver.status_name(status), configuration=cfg, ortools_version=ortools.__version__,
@@ -99,17 +126,52 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
                   gap_definition='(scaled_bound - scaled_objective) / max(1, abs(scaled_objective)); rounded integer objective only')
     if status in (cp_model.FEASIBLE, cp_model.OPTIMAL):
         matches = extract_matches(solver.value, variables, teams, slots)
+        if alns_config is not None:
+            from .alns import evaluate, CPSatRepair, search
+            # Independent initial validation happens before the ALNS clock.
+            validation_start = time.monotonic()
+            initial_evaluation = evaluate(matches, teams, slots, rules, scenario, scale)
+            result['initial_validation_time'] = time.monotonic() - validation_start
+            write_records(output_dir, matches, 'initial_schedule')
+            initial_gap = max(0, (solver.best_objective_bound - initial_evaluation.score) /
+                              max(1, abs(initial_evaluation.score)))
+            initial = dict(kpis=initial_evaluation.kpis, scaled_bound=solver.best_objective_bound,
+                           relative_gap=initial_gap, first_solution_time=result['first_solution_time'])
+            write_json(output_dir / 'initial_summary.json', initial)
+            print('\nINITIAL VERIFIED SCHEDULE', flush=True)
+            print_schedule(matches)
+            print(f"Initial Z={initial_evaluation.kpis['Z']:.6f}; "
+                  f"rounded objective={initial_evaluation.score / cfg['objective_divisor']:.6f}; "
+                  f"global gap={initial_gap:.2%}\nStarting ALNS for {alns_config.seconds:g} seconds", flush=True)
+            repair = CPSatRepair(model, variables, teams, slots,
+                                 lambda value: extract_matches(value, variables, teams, slots),
+                                 workers, seed, alns_config.verbose)
+            matches, current, report, history = search(
+                matches, initial_evaluation, [t['id'] for t in teams],
+                lambda candidate: evaluate(candidate, teams, slots, rules, scenario, scale),
+                repair, alns_config, cfg['objective_divisor'])
+            report.update(global_scaled_bound=solver.best_objective_bound,
+                          relative_gap=max(0, (solver.best_objective_bound - report['best_scaled_objective']) /
+                                           max(1, abs(report['best_scaled_objective']))))
+            write_records(output_dir, current, 'current_schedule')
+            write_json(output_dir / 'alns_summary.json', report)
+            write_history(output_dir, history)
+            result.update(alns=report, initial=initial, initial_search_wall_time=solver.wall_time,
+                          response_stats_scope='initial full-model search only')
+            result['wall_time'] += sum(event['solver_seconds'] for event in history)
+            result['improvements'].extend(dict(seconds=solver.wall_time + event['elapsed'],
+                                               scaled_objective=event['best_scaled_objective'],
+                                               scaled_bound=solver.best_objective_bound, phase='alns')
+                                           for event in history if event['note'] == 'NEW BEST')
         result['kpis'] = compute_kpis(matches, slots, scenario, balance, scale)
         result['mirrors'] = mirror_summary(matches)
         if mode == 'optimization':
             result['scaled_objective'] = result['kpis']['scaled_objective']
             result['scaled_bound'] = solver.best_objective_bound
             result['relative_gap'] = max(0, (result['scaled_bound'] - result['scaled_objective']) / max(1, abs(result['scaled_objective'])))
-        write_json(output_dir / 'schedule.json', matches)
-        with (output_dir / 'schedule.csv').open('w', encoding='utf-8', newline='') as stream:
-            writer = csv.DictWriter(stream, fieldnames=list(matches[0]))
-            writer.writeheader()
-            writer.writerows(matches)
+        if alns_config is not None:
+            result['status'] = 'OPTIMAL' if result['relative_gap'] == 0 else 'FEASIBLE'
+        write_records(output_dir, matches)
         write_json(output_dir / 'by_team.json', {t['id']: [m for m in matches if t['id'] in (m['home'], m['away'])] for t in teams})
         write_json(output_dir / 'status.json', result)
         reports = {ext: validate_export(output_dir / f'schedule.{ext}', input_dir) for ext in ('json', 'csv')}
@@ -140,6 +202,15 @@ def main():
     parser.add_argument('--attractiveness-file', type=Path)
     parser.add_argument('--scale', type=int, default=SCALE)
     parser.add_argument('--show-chart', action='store_true', help='Save and open the round TV-value chart after a validated solution')
+    parser.add_argument('--alns', action='store_true', help='First feasible solution followed by adaptive repair and simulated annealing (lambda=3)')
+    parser.add_argument('--alns-time', type=float, default=240)
+    parser.add_argument('--alns-seed', type=int, default=0)
+    parser.add_argument('--alns-worst-pool', type=int, default=5)
+    parser.add_argument('--alns-random-rounds-time', type=float, default=3)
+    parser.add_argument('--alns-worst-value-rounds-time', type=float, default=3)
+    parser.add_argument('--alns-random-teams-time', type=float, default=5)
+    parser.add_argument('--alns-calibration-time', type=float, default=15)
+    parser.add_argument('--alns-verbose', action='store_true')
     parser.add_argument('--many', action='store_true', help='Legacy alias; runs normal optimization in a new directory')
     parser.add_argument('--min-different-matches', type=int, default=20, help='Deprecated; ignored')
     args = parser.parse_args()
@@ -148,14 +219,38 @@ def main():
     try:
         if args.many:
             args.output_dir = args.output_dir / datetime.now().strftime('run_%Y%m%d_%H%M%S_%f')
+        options = {}
+        if args.alns:
+            from .alns import ALNSConfig
+            options['alns_config'] = ALNSConfig(
+                seconds=args.alns_time, seed=args.alns_seed, worst_pool=args.alns_worst_pool,
+                random_rounds_seconds=args.alns_random_rounds_time,
+                worst_value_rounds_seconds=args.alns_worst_value_rounds_time,
+                random_teams_seconds=args.alns_random_teams_time,
+                calibration_seconds=args.alns_calibration_time, verbose=args.alns_verbose)
         result = solve(args.input_dir, args.output_dir, args.time_limit, args.seed,
                        data_seed=args.data_seed, workers=args.workers, balance=args.balance,
-                       mode=args.mode, attractiveness_file=args.attractiveness_file, scale=args.scale)
+                       mode=args.mode, attractiveness_file=args.attractiveness_file, scale=args.scale,
+                       **options)
     except (ValueError, KeyError, OSError, TypeError, OverflowError) as exc:
         parser.error(str(exc))
-    print(json.dumps(result, ensure_ascii=True))
+    if args.alns:
+        print(f"Result: {result['status']} | validated={result['validated']} | {args.output_dir / 'status.json'}")
+    else:
+        print(json.dumps(result, ensure_ascii=True))
     if result['status'] in ('FEASIBLE', 'OPTIMAL'):
+        if 'alns' in result:
+            print('\nBEST ALNS SCHEDULE')
         print_schedule(read_schedule(args.output_dir / 'schedule.json'))
+        if 'alns' in result:
+            report = result['alns']
+            print(f"ALNS: {report['iterations']} iterations; accepted worse={report['accepted_worse']}; "
+                  f"initial Z={report['initial_real_Z']:.6f}; best Z={report['best_real_Z']:.6f}; "
+                  f"global integer-objective gap={result['relative_gap']:.2%}", flush=True)
+            for operator, stats in report['operator_statistics'].items():
+                print(f"  {operator}: uses={stats['uses']}, accepted={stats['accepted']}, "
+                      f"new best={stats['new_best']}, SA worse={stats['accepted_worse']}, "
+                      f"weight={report['weights'][operator]:.4f}", flush=True)
         if args.show_chart and result['validated']:
             from .plot import plot_round_values
             chart = plot_round_values(result['kpis']['round_values'], args.output_dir / 'round_tv_value.png', show=True)

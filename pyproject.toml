@@ -20,3 +20,6 @@ super-league-validate = "super_league_scheduler.validate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
