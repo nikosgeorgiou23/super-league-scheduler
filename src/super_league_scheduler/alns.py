@@ -159,8 +159,8 @@ class Evaluation:
     kpis: dict
 
 
-def evaluate(matches, teams, slots, rules, scenario, scale):
-    report = validate_schedule(matches, teams, slots, rules, scenario, balance=3, scale=scale)
+def evaluate(matches, teams, slots, rules, scenario, scale, balance=3):
+    report = validate_schedule(matches, teams, slots, rules, scenario, balance=balance, scale=scale)
     if not report['valid']:
         failed = [name for name, check in report['checks'].items() if not check['passed']]
         raise ValueError('Independent ALNS validation failed: ' + ', '.join(failed))

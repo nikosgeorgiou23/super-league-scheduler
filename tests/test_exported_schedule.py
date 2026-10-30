@@ -39,12 +39,19 @@ def test_forged_totals(inputs,scenario):
     assert not validate_schedule(ms,*inputs,scenario,declared_kpis=k)['checks']['kpis']['passed']
 
 @pytest.mark.parametrize('ext',['json','csv'])
-def test_historical_exports_still_checked(inputs,scenario,ext):
+def test_historical_top_strength_streaks_are_now_valid(inputs,scenario,ext):
     ms=read_schedule(f'examples/current/schedule.{ext}')
     report=validate_schedule(ms,*inputs,scenario)
-    assert not report['valid']
-    assert not report['checks']['big_opponent_streaks']['passed']
+    assert report['valid']
+    assert 'big_opponent_streaks' not in report['checks']
     assert len(ms)==182
+    opponents={}
+    for m in ms:
+        opponents[m['home'],m['round']]=m['away']
+        opponents[m['away'],m['round']]=m['home']
+    top=set(scenario['top_four_by_strength'])
+    assert any(all(opponents[t['id'],r+i] in top for i in range(3))
+               for t in inputs[0] for r in range(1,25))
 
 def test_missing_file_cli(tmp_path):
     result=subprocess.run([sys.executable,'-m','super_league_scheduler.validate',str(tmp_path/'missing.csv'),

@@ -21,14 +21,35 @@ def force_match(model,variables,teams,r,h,a):
 
 @pytest.mark.parametrize('start',[0,11,12,23])
 @pytest.mark.parametrize('target',['volos','paok'])
-def test_model_big_windows(built,inputs,start,target):
+def test_model_allows_three_top_strength_opponents(built,inputs,scenario,start,target):
+    from super_league_scheduler.validate import read_schedule,validate_schedule
+    from super_league_scheduler.solve import extract_matches
     original,vs=built
     m=original.clone()
-    for i,a in enumerate(['panathinaikos','olympiacos','aek']):
-        force_match(m,vs,inputs[0],start+i,target,a)
+    m.clear_objective()
+    fixtures=[f for f in read_schedule('examples/current-rules/schedule.json') if f['round']<=13]
+    opponents=['panathinaikos','olympiacos','aek']
+    permutation={}
+    for i,a in enumerate(opponents):
+        first=next(f['round']-1 for f in fixtures if {f['home'],f['away']}=={target,a})
+        permutation[first]=(start+i)%13
+    permutation.update(zip(sorted(set(range(13))-set(permutation)),
+                           sorted(set(range(13))-set(permutation.values()))))
+    ids={t['id']:i for i,t in enumerate(inputs[0])}
+    for f in fixtures:
+        h,a=ids[f['home']],ids[f['away']]
+        r=permutation[f['round']-1]
+        for rr in (r,r+13):
+            m.add(sum(vs[rr,h,a,s]+vs[rr,a,h,s] for s in range(len(inputs[1])))==1)
+    for i,a in enumerate(opponents):
+        h,away=(target,a) if i%2==0 else (a,target)
+        force_match(m,vs,inputs[0],start+i,h,away)
     solver=cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds=30
-    assert solver.solve(m)==cp_model.INFEASIBLE
+    solver.parameters.max_time_in_seconds=10
+    solver.parameters.num_search_workers=1
+    assert solver.solve(m) in (cp_model.FEASIBLE,cp_model.OPTIMAL)
+    matches=extract_matches(solver.value,vs,inputs[0],inputs[1])
+    assert validate_schedule(matches,*inputs,scenario)['valid']
 
 @pytest.mark.parametrize('first,second',[(12,13)])
 def test_model_transition(built,inputs,first,second):
@@ -132,14 +153,11 @@ def test_full_model_rejects_historical_home_streaks(built,inputs):
     from super_league_scheduler.validate import read_schedule, validate_schedule
     ms=read_schedule('examples/optimized/schedule.json')
     scenario=json.loads(Path('examples/optimized/scenario.json').read_text())
-    # Move the third round's Big 4 meeting into the opening round. This
-    # retains historical home streak violations, which both checks must reject.
+    # Swap two rounds while retaining historical home streak violations,
+    # which both the model and the independent validator must reject.
     for fixture in ms:
         fixture['round']={1:3,3:1}.get(fixture['round'],fixture['round'])
     assert not validate_schedule(ms,*inputs,scenario)['checks']['streaks']['passed']
-    big=set(scenario['big_four'])
-    assert any(m['round']<=2 and {m['home'],m['away']}<=big for m in ms)
-    assert any(m['slot'] in ['S1','S2','S5'] and {m['home'],m['away']}&big for m in ms)
     assert any(all(any(m['round']==r+i and m['home']==t['id'] for m in ms) for i in range(3))
                for r in range(1,25) for t in inputs[0])
     m=built[0].clone()

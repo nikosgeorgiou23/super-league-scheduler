@@ -12,7 +12,6 @@ def load_inputs(directory):
     teams = sorted(teams, key=lambda t: t['id'])
     slots = sorted(config['slots'], key=lambda s: s['id'])
     expected = dict(rounds=26, rounds_per_half=13, matches_per_round=7,
-                    max_consecutive_big_opponents=2,
                     max_home_per_conflict_group_per_day=1,
                     max_consecutive_home=2, max_consecutive_away=2,
                     no_immediate_rematch_between_halves=True)
@@ -75,7 +74,7 @@ def ratings(teams, source, config):
 
 
 def prepare_scenario(teams, source, config, data_seed=0, reuse=None):
-    computed, big_four = ratings(teams, source, config)
+    computed, top_four = ratings(teams, source, config)
     rng = random.Random(data_seed)
     values = {tid: [rng.uniform(v['mu'] - 0.1, v['mu'] + 0.1) for _ in range(26)]
               for tid, v in computed.items()} if reuse is None else reuse['attractiveness']
@@ -86,7 +85,13 @@ def prepare_scenario(teams, source, config, data_seed=0, reuse=None):
         if len(draws) != 26 or any(isinstance(a, bool) or not math.isfinite(a) or not mu - .1 - 1e-12 <= a <= mu + .1 + 1e-12 for a in draws):
             raise ValueError('Invalid attractiveness values')
     if reuse is not None and any(reuse.get(k) != v for k, v in
-                                 [('source', source), ('rating_config', config), ('ratings', computed), ('big_four', big_four)]):
+                                 [('source', source), ('rating_config', config), ('ratings', computed)]):
         raise ValueError('Reused scenario does not match rating inputs')
-    return dict(source=source, rating_config=config, ratings=computed, big_four=big_four,
+    # Read the old metadata key for historical scenarios; new exports use only
+    # the descriptive ranking key and confer no special scheduling status.
+    ranking_keys = ('top_four_by_strength', 'big_four')
+    if reuse is not None and (not any(k in reuse for k in ranking_keys) or
+                              any(reuse[k] != top_four for k in ranking_keys if k in reuse)):
+        raise ValueError('Reused scenario does not match strength ranking')
+    return dict(source=source, rating_config=config, ratings=computed, top_four_by_strength=top_four,
                 data_seed=data_seed if reuse is None else reuse['data_seed'], attractiveness=values)

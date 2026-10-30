@@ -85,8 +85,8 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
         raise ValueError('Workers must be 1..256')
     if alns_config is not None:
         alns_config.validate()
-        if balance != 3 or mode != 'optimization':
-            raise ValueError('ALNS requires --lambda 3 and optimization mode')
+        if mode != 'optimization':
+            raise ValueError('ALNS requires optimization mode')
     numerator, denominator = objective_units(balance, scale)
     teams, slots, rules = load_inputs(input_dir)
     root = Path(input_dir)
@@ -130,7 +130,7 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
             from .alns import evaluate, CPSatRepair, search
             # Independent initial validation happens before the ALNS clock.
             validation_start = time.monotonic()
-            initial_evaluation = evaluate(matches, teams, slots, rules, scenario, scale)
+            initial_evaluation = evaluate(matches, teams, slots, rules, scenario, scale, balance)
             result['initial_validation_time'] = time.monotonic() - validation_start
             write_records(output_dir, matches, 'initial_schedule')
             initial_gap = max(0, (solver.best_objective_bound - initial_evaluation.score) /
@@ -148,7 +148,7 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
                                  workers, seed, alns_config.verbose)
             matches, current, report, history = search(
                 matches, initial_evaluation, [t['id'] for t in teams],
-                lambda candidate: evaluate(candidate, teams, slots, rules, scenario, scale),
+                lambda candidate: evaluate(candidate, teams, slots, rules, scenario, scale, balance),
                 repair, alns_config, cfg['objective_divisor'])
             report.update(global_scaled_bound=solver.best_objective_bound,
                           relative_gap=max(0, (solver.best_objective_bound - report['best_scaled_objective']) /
@@ -202,7 +202,7 @@ def main():
     parser.add_argument('--attractiveness-file', type=Path)
     parser.add_argument('--scale', type=int, default=SCALE)
     parser.add_argument('--show-chart', action='store_true', help='Save and open the round TV-value chart after a validated solution')
-    parser.add_argument('--alns', action='store_true', help='First feasible solution followed by adaptive repair and simulated annealing (lambda=3)')
+    parser.add_argument('--alns', action='store_true', help='First feasible solution followed by adaptive repair and simulated annealing using the selected --lambda')
     parser.add_argument('--alns-time', type=float, default=240)
     parser.add_argument('--alns-seed', type=int, default=0)
     parser.add_argument('--alns-worst-pool', type=int, default=5)
@@ -245,7 +245,9 @@ def main():
         if 'alns' in result:
             report = result['alns']
             print(f"ALNS: {report['iterations']} iterations; accepted worse={report['accepted_worse']}; "
+                  f"lambda={args.balance:g}; "
                   f"initial Z={report['initial_real_Z']:.6f}; best Z={report['best_real_Z']:.6f}; "
+                  f"rounded objective={report['best_scaled_objective'] / report['objective_divisor']:.6f}; "
                   f"global integer-objective gap={result['relative_gap']:.2%}", flush=True)
             for operator, stats in report['operator_statistics'].items():
                 print(f"  {operator}: uses={stats['uses']}, accepted={stats['accepted']}, "

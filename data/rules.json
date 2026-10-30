@@ -2,7 +2,6 @@
   "rounds": 26,
   "rounds_per_half": 13,
   "matches_per_round": 7,
-  "max_consecutive_big_opponents": 2,
   "max_home_per_conflict_group_per_day": 1,
   "max_consecutive_home": 2,
   "max_consecutive_away": 2,

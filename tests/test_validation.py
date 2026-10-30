@@ -9,10 +9,13 @@ def check(inputs, scenario, records, key):
 
 @pytest.mark.parametrize('start', [1,12,13,24])
 @pytest.mark.parametrize('target', ['volos','paok'])
-@pytest.mark.parametrize('third,ok', [('aek',False),('ofi',True)])
-def test_big_opponent_windows(inputs, scenario, start, target, third, ok):
-    records=[record(inputs,start+i,target,a) for i,a in enumerate(['panathinaikos','olympiacos',third])]
-    assert check(inputs,scenario,records,'big_opponent_streaks') == ok
+@pytest.mark.parametrize('third', ['aek','ofi'])
+def test_strength_ranking_does_not_restrict_opponent_windows(inputs, scenario, start, target, third):
+    records=[record(inputs,start+i,*( (target,a) if i%2==0 else (a,target)))
+             for i,a in enumerate(['panathinaikos','olympiacos',third])]
+    report=validate_schedule(records,*inputs,scenario)
+    assert 'big_opponent_streaks' not in report['checks']
+    assert report['checks']['streaks']['passed']
 
 @pytest.mark.parametrize('first', [10,11,12,13])
 @pytest.mark.parametrize('second', [14,15,16,17])

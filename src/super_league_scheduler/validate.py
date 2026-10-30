@@ -9,10 +9,10 @@ from collections import Counter, defaultdict
 from fractions import Fraction
 from itertools import combinations
 from pathlib import Path
-from .data import load_inputs, ratings, prepare_scenario
+from .data import load_inputs, prepare_scenario
 
 CHECKS = ('structure', 'participation', 'pairings', 'venues', 'slots',
-          'geography', 'streaks', 'big_opponent_streaks', 'transition', 'mirror', 'metadata', 'kpis')
+          'geography', 'streaks', 'transition', 'mirror', 'metadata', 'kpis')
 
 
 def compute_kpis(matches, slots, scenario, balance=3, scale=10000):
@@ -51,12 +51,10 @@ def validate_schedule(matches, teams, slots, rules, scenario=None, balance=3, sc
     team = {t['id']: t for t in teams}
     slot = {s['id']: s for s in slots}
     if scenario is None:
-        raise ValueError('Scenario required to compute Big 4 independently')
-    computed, big = ratings(teams, scenario['source'], scenario['rating_config'])
+        raise ValueError('Scenario required to validate attractiveness and strength metadata')
     prepare_scenario(teams, scenario['source'], scenario['rating_config'], reuse=scenario)
     rounds, pairs, appearances = defaultdict(list), defaultdict(list), defaultdict(list)
     opponents = defaultdict(list)
-    big_opponents = defaultdict(int)
     clean = []
     if not isinstance(matches, list):
         matches = []
@@ -80,8 +78,6 @@ def validate_schedule(matches, teams, slots, rules, scenario=None, balance=3, sc
         appearances[a, r].append(False)
         opponents[h, r].append(a)
         opponents[a, r].append(h)
-        big_opponents[h, r] += a in big
-        big_opponents[a, r] += h in big
         expected = {k: slot[s][k] for k in ('day', 'start_earliest', 'start_latest')}
         expected.update(home_name=team[h]['name'], away_name=team[a]['name'], venue=h)
         for key, value in expected.items():
@@ -114,8 +110,6 @@ def validate_schedule(matches, teams, slots, rules, scenario=None, balance=3, sc
             window = [appearances[t, rr] for rr in range(r, r + 3)]
             if all(len(v) == 1 for v in window) and len({v[0] for v in window}) == 1:
                 fail('streaks', f'{t}: three consecutive home or away games at rounds {r}-{r + 2}')
-            if sum(big_opponents[t, rr] for rr in range(r, r + 3)) > 2:
-                fail('big_opponent_streaks', f'{t}: three Big 4 opponents at rounds {r}-{r + 2}')
         before = set(opponents[t, 13])
         after = set(opponents[t, 14])
         if before & after:

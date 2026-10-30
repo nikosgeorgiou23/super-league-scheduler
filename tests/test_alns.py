@@ -95,15 +95,16 @@ def test_team_operator_fixes_inactive_nonteam_choices_too():
 
 
 @pytest.mark.parametrize('operator',OPERATORS)
-def test_real_repair_preserves_every_rule_and_neighborhood(initial,inputs,scenario,operator):
+@pytest.mark.parametrize('balance',[3,7])
+def test_real_repair_preserves_every_rule_and_neighborhood(initial,inputs,scenario,operator,balance):
     teams,slots,rules=inputs
-    base,vs=build_model(*inputs,scenario)
+    base,vs=build_model(*inputs,scenario,balance=balance)
     ids={t['id']:i for i,t in enumerate(teams)}
     # Controlled instance: fix the real season's pairings/venues globally;
     # repair still chooses slots and must satisfy all original constraints.
     for m in initial:
         base.add(sum(vs[m['round']-1,ids[m['home']],ids[m['away']],s] for s in range(len(slots)))==1)
-    n=destroy(operator,initial,evaluate(initial,*inputs,scenario,10000).kpis['round_values'],
+    n=destroy(operator,initial,evaluate(initial,*inputs,scenario,10000,balance).kpis['round_values'],
               list(ids),random.Random(2))
     repaired,free=build_repair(base,vs,initial,teams,slots,n)
     assert free==(50 if operator=='random_teams' else 7*len(n.rounds))
@@ -113,7 +114,7 @@ def test_real_repair_preserves_every_rule_and_neighborhood(initial,inputs,scenar
     candidate=extract_matches(solver.value,vs,teams,slots)
     assert assignments(candidate)!=assignments(initial)
     assert unchanged_outside(initial,candidate,n)
-    assert evaluate(candidate,*inputs,scenario,10000).score==round(solver.objective_value)
+    assert evaluate(candidate,*inputs,scenario,10000,balance).score==round(solver.objective_value)
 
 
 class FixedRandom:
@@ -244,12 +245,14 @@ def test_config_rejects_invalid_options(kwargs):
     with pytest.raises(ValueError): ALNSConfig(**kwargs).validate()
 
 
-def test_separate_budget_and_real_exports(tmp_path,monkeypatch,initial):
+@pytest.mark.parametrize('balance',[0,0.5,3,7])
+def test_separate_budget_and_real_exports(tmp_path,monkeypatch,initial,balance):
     import super_league_scheduler.solve as module
     import super_league_scheduler.alns as alns
     clock=Clock(0);real_evaluate=alns.evaluate;real_search=alns.search
     checked=[]
     def checked_evaluate(*a):
+        assert a[-1]==balance
         checked.append(clock());clock.value+=20
         return real_evaluate(*a)
     def search_wrapper(*a,**kw):
@@ -269,7 +272,9 @@ def test_separate_budget_and_real_exports(tmp_path,monkeypatch,initial):
         def __call__(self,current,n,deadline,limit,iteration):
             assert clock()<deadline
             duration=min(limit,deadline-clock());clock.value+=duration
-            return RepairResult('UNKNOWN',duration=duration,solver_seconds=duration,solver_limit=duration)
+            candidate=deepcopy(current) if iteration==10 else None
+            return RepairResult('FEASIBLE' if candidate else 'UNKNOWN',candidate=candidate,
+                                duration=duration,solver_seconds=duration,solver_limit=duration)
     monkeypatch.setattr(module.time,'monotonic',clock)
     monkeypatch.setattr(module,'build_model',lambda *a:(cp_model.CpModel(),{}))
     monkeypatch.setattr(module.cp_model,'CpSolver',FakeSolver)
@@ -277,12 +282,18 @@ def test_separate_budget_and_real_exports(tmp_path,monkeypatch,initial):
     monkeypatch.setattr(alns,'evaluate',checked_evaluate)
     monkeypatch.setattr(alns,'search',search_wrapper)
     monkeypatch.setattr(alns,'CPSatRepair',FakeRepair)
-    result=module.solve('data',tmp_path,time_limit=500,data_seed=20261019,alns_config=ALNSConfig())
+    result=module.solve('data',tmp_path,time_limit=500,data_seed=20261019,balance=balance,alns_config=ALNSConfig())
     assert result['validated'] and result['alns']['wall_time']==240
     assert result['alns']['calibration']['duration']==15
     assert result['total_time']==660  # 400 search + 20 validation + full 240 ALNS.
+    assert len(checked)==2  # Both initial and repair candidates use selected lambda.
     assert result['scaled_bound']==3000000
     assert result['first_solution_time']==400
+    kpis=result['kpis']
+    assert kpis['Z']==pytest.approx(kpis['total']-balance*kpis['range'])
+    assert result['alns']['initial_scaled_objective']==kpis['scaled_objective']
+    assert result['alns']['best_scaled_objective']==kpis['scaled_objective']
+    assert result['alns']['objective_divisor']==kpis['objective_divisor']
     for ext in ['json','csv']: assert validate_export(tmp_path/f'schedule.{ext}')['valid']
     trace=json.loads((tmp_path/'alns_history.json').read_text())
     with (tmp_path/'alns_history.csv').open(newline='',encoding='utf-8') as stream:
@@ -308,11 +319,10 @@ def test_no_initial_solution_never_starts_alns(tmp_path,monkeypatch):
     assert not (tmp_path/'schedule.json').exists() and not (tmp_path/'alns_summary.json').exists()
 
 
-@pytest.mark.parametrize('balance,mode',[(0,'optimization'),(7,'optimization'),(3,'feasibility')])
-def test_alns_requires_lambda_three(tmp_path,balance,mode):
+def test_alns_requires_optimization_mode(tmp_path):
     from super_league_scheduler.solve import solve
-    with pytest.raises(ValueError,match='lambda 3'):
-        solve('data',tmp_path,balance=balance,mode=mode,alns_config=ALNSConfig())
+    with pytest.raises(ValueError,match='optimization mode'):
+        solve('data',tmp_path,balance=7,mode='feasibility',alns_config=ALNSConfig())
 
 
 def test_search_returns_best_even_when_last_current_is_worse(monkeypatch):

@@ -36,7 +36,6 @@ def build_model(teams, slots, rules, scenario, balance=3, mode='optimization', s
     model = cp_model.CpModel()
     x, y = {}, {}
     n = len(teams)
-    big = {i for i, t in enumerate(teams) if t['id'] in scenario['big_four']}
     draws = scenario['attractiveness']
     round_values = []
     for r in range(26):
@@ -76,10 +75,8 @@ def build_model(teams, slots, rules, scenario, balance=3, mode='optimization', s
         model.add(sum(x[r, h, a] + x[r, a, h] for r in (12, 13)) <= 1)
     for t in range(n):
         home = [sum(x[r, t, a] for a in range(n) if a != t) for r in range(26)]
-        opponents = [sum(x[r, t, a] + x[r, a, t] for a in big if a != t) for r in range(26)]
         for r in range(24):
             model.add_linear_constraint(sum(home[r:r + 3]), 1, 2)
-            model.add(sum(opponents[r:r + 3]) <= 2)
     if mode == 'optimization':
         add_value_objective(model, round_values, 14 * scale, balance, scale)
     return model, y
