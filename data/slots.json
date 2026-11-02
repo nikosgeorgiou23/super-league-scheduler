@@ -1,61 +1,62 @@
 {
   "timezone": "Europe/Athens",
+  "historical_scores_file": "historical_slot_scores.csv",
   "slots": [
     {
       "id": "S1",
       "day": "saturday",
       "start_earliest": "16:00",
       "start_latest": "17:00",
-      "value": 0.4
+      "historical_slot": "saturday_1600_1800"
     },
     {
       "id": "S2",
       "day": "saturday",
       "start_earliest": "18:00",
       "start_latest": "19:00",
-      "value": 0.5
+      "historical_slot": "saturday_1800_2000"
     },
     {
       "id": "S3",
       "day": "saturday",
       "start_earliest": "20:00",
       "start_latest": "21:00",
-      "value": 0.8
+      "historical_slot": "saturday_2000_2200"
     },
     {
       "id": "S4",
       "day": "sunday",
       "start_earliest": "16:00",
       "start_latest": "17:00",
-      "value": 0.7
+      "historical_slot": "sunday_1600_1800"
     },
     {
       "id": "S5",
       "day": "sunday",
       "start_earliest": "17:00",
       "start_latest": "18:00",
-      "value": 0.6
+      "historical_slot": "sunday_1600_1800"
     },
     {
       "id": "S6",
       "day": "sunday",
       "start_earliest": "18:00",
       "start_latest": "19:00",
-      "value": 0.9
+      "historical_slot": "sunday_1800_2000"
     },
     {
       "id": "S7",
       "day": "sunday",
       "start_earliest": "20:00",
       "start_latest": "21:00",
-      "value": 1.0
+      "historical_slot": "sunday_2000_2200"
     },
     {
       "id": "S8",
       "day": "monday",
       "start_earliest": "18:00",
       "start_latest": "19:00",
-      "value": 0.3
+      "historical_slot": "monday_1800_2000"
     }
   ]
 }

@@ -14,6 +14,7 @@ from ortools.sat.python import cp_model
 from .data import load_inputs, prepare_scenario
 from .model import build_model, SCALE, ROUNDING, objective_units
 from .validate import read_schedule, validate_export, compute_kpis, mirror_summary
+from .slot_values import valuation_report
 
 
 def write_json(path, value):
@@ -47,6 +48,15 @@ def print_schedule(matches):
             print(f'\nRound {current_round}')
         print(f"  {m['slot']} | {m['day']} | {m['start_earliest']}-{m['start_latest']} | "
               f"{m['home_name']} - {m['away_name']}")
+
+
+def print_slot_values(report):
+    print(f"Slot valuation: sigmoid k={report['slope']:g}, center={report['center']:.10f}", flush=True)
+    print('Slot | day | start window | historical window | score D_s | observations N_s | weight V_s')
+    for slot in report['slots']:
+        print(f"{slot['id']} | {slot['day']} | {slot['start_earliest']}-{slot['start_latest']} | "
+              f"{slot['historical_start']}-{slot['historical_end']} | "
+              f"{slot['historical_score']:.10f} | {slot['historical_observations']} | {slot['value']:.10f}")
 
 
 def extract_matches(value, variables, teams, slots):
@@ -104,6 +114,10 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
                objective_divisor=scale * denominator, attractiveness_file=str(attractiveness_file) if attractiveness_file else None)
     if alns_config is not None:
         cfg['alns'] = asdict(alns_config)
+    slot_report = valuation_report(slots)
+    cfg['slot_valuation'] = {k: v for k, v in slot_report.items() if k != 'slots'}
+    write_json(output_dir / 'slot_values.json', slot_report)
+    print_slot_values(slot_report)
     write_json(output_dir / 'scenario.json', scenario)
     write_json(output_dir / 'run.json', dict(configuration=cfg, teams=teams, slots=slots, rules=rules,
                                             ortools_version=ortools.__version__))

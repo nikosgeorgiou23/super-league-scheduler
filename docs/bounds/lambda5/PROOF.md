@@ -2,6 +2,11 @@
 
 # Certified upper bound for lambda = 5 after removing the opponent-streak restriction
 
+> Historical result: this proof uses the former manually assigned slot weights.
+> It does not certify an upper bound for the later sigmoid-weighted objective
+> without a fresh computation. The scheduling constraints alone are not enough
+> to transfer a numerical objective bound after the coefficients change.
+
 ## Instance and conclusion
 
 This analysis concerns the current repository rules, 14 teams, 26 rounds, seven

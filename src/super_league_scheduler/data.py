@@ -3,6 +3,7 @@ import json
 import math
 import random
 from pathlib import Path
+from .slot_values import value_slots
 
 
 def load_inputs(directory):
@@ -37,10 +38,13 @@ def load_inputs(directory):
     days = ['saturday'] * 3 + ['sunday'] * 4 + ['monday']
     if config['timezone'] != 'Europe/Athens' or any(
         s['day'] != days[i] or
-        (s['start_earliest'], s['start_latest']) != windows[i] or
-        not math.isfinite(s['value']) or not 0 < s['value'] <= 1
+        (s['start_earliest'], s['start_latest']) != windows[i]
         for i, s in enumerate(slots)):
         raise ValueError('Invalid slot configuration')
+    historical_file = config.get('historical_scores_file')
+    if not isinstance(historical_file, str) or not historical_file:
+        raise ValueError('Historical scores file is required; no hardcoded weight fallback')
+    slots = value_slots(slots, root / historical_file)
     return teams, slots, rules
 
 
