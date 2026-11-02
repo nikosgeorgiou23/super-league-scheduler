@@ -6,16 +6,16 @@ Selection: Monday/Saturday/Sunday, two-hour bins, count >= 15, rounds 1-25,
 seasons 2023-24/2024-25/2025-26, only matches with result and known kickoff.
 """
 from pathlib import Path
-from super_league_scheduler.slot_values import load_historical_scores
+import csv
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 HERE=Path(__file__).resolve().parent
-HISTORY=load_historical_scores(HERE.parent/'data/historical_slot_scores.csv')
-DAY_LABELS={'sunday':'Κυριακή','saturday':'Σάββατο','monday':'Δευτέρα'}
-ROWS=[(DAY_LABELS[row['day']],row['start']+'–'+row['end'],row['score'],row['observations'])
-      for row in sorted(HISTORY,key=lambda row:-row['score'])]
+with (HERE/'top8_time_slots.csv').open(encoding='utf-8-sig',newline='') as stream:
+    HISTORY=list(csv.DictReader(stream))
+ROWS=[(row['day'],row['window'],float(row['mean_strength']),int(row['match_count']))
+      for row in sorted(HISTORY,key=lambda row:-float(row['mean_strength']))]
 plt.rcParams.update({'font.family':'DejaVu Sans','font.size':11,
                      'axes.spines.top':False,'axes.spines.right':False})
 fig,ax=plt.subplots(figsize=(14,7.5),facecolor='#f7f9fc')

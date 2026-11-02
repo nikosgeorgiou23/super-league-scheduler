@@ -1,9 +1,10 @@
-﻿"""Configuration and scenario preparation; no solver dependencies."""
+"""Configuration and scenario preparation; no solver dependencies."""
 import json
 import math
 import random
 from pathlib import Path
-from .slot_values import value_slots
+
+ATTRACTIVENESS_DELTA = 0.1
 
 
 def load_inputs(directory):
@@ -38,13 +39,10 @@ def load_inputs(directory):
     days = ['saturday'] * 3 + ['sunday'] * 4 + ['monday']
     if config['timezone'] != 'Europe/Athens' or any(
         s['day'] != days[i] or
-        (s['start_earliest'], s['start_latest']) != windows[i]
+        (s['start_earliest'], s['start_latest']) != windows[i] or
+        not math.isfinite(s['value']) or not 0 < s['value'] <= 1
         for i, s in enumerate(slots)):
         raise ValueError('Invalid slot configuration')
-    historical_file = config.get('historical_scores_file')
-    if not isinstance(historical_file, str) or not historical_file:
-        raise ValueError('Historical scores file is required; no hardcoded weight fallback')
-    slots = value_slots(slots, root / historical_file)
     return teams, slots, rules
 
 
@@ -80,13 +78,13 @@ def ratings(teams, source, config):
 def prepare_scenario(teams, source, config, data_seed=0, reuse=None):
     computed, top_four = ratings(teams, source, config)
     rng = random.Random(data_seed)
-    values = {tid: [rng.uniform(v['mu'] - 0.1, v['mu'] + 0.1) for _ in range(26)]
+    values = {tid: [rng.uniform(v['mu'] - ATTRACTIVENESS_DELTA, v['mu'] + ATTRACTIVENESS_DELTA) for _ in range(26)]
               for tid, v in computed.items()} if reuse is None else reuse['attractiveness']
     if set(values) != set(computed):
         raise ValueError('Attractiveness team IDs do not match')
     for tid, draws in values.items():
         mu = computed[tid]['mu']
-        if len(draws) != 26 or any(isinstance(a, bool) or not math.isfinite(a) or not mu - .1 - 1e-12 <= a <= mu + .1 + 1e-12 for a in draws):
+        if len(draws) != 26 or any(isinstance(a, bool) or not math.isfinite(a) or not mu - ATTRACTIVENESS_DELTA - 1e-12 <= a <= mu + ATTRACTIVENESS_DELTA + 1e-12 for a in draws):
             raise ValueError('Invalid attractiveness values')
     if reuse is not None and any(reuse.get(k) != v for k, v in
                                  [('source', source), ('rating_config', config), ('ratings', computed)]):

@@ -1,8 +1,9 @@
 # Historical slot scores
 
-`historical_slot_scores.csv` is the single source of the eight aggregate scores
-previously computed in the historical scheduling analysis. It was moved intact
-from `charts/top8_time_slots.csv`; the chart now reads this file as well.
+`top8_time_slots.csv` contains the eight aggregate scores previously computed
+in the historical scheduling analysis. It is used only by the research chart
+in this directory. The scheduler uses fixed values from `data/slots.json`;
+this historical analysis does not supply its slots or weights.
 
 - Seasons: 2023–24, 2024–25, 2025–26, regular-season rounds 1–25 only.
 - Analysis sample: 376 matches with both a recorded result and a known kickoff,
@@ -20,14 +21,3 @@ Sources used in that analysis:
 - https://openfootball.github.io/europe/greece_2023-24_gr1.json
 - https://openfootball.github.io/europe/greece_2024-25_gr1.json
 - https://openfootball.github.io/europe/greece_2025-26_gr1.json
-
-The CSV retains full stored score precision and observation counts. Updating
-these aggregate scores changes the computed sigmoid weights at input loading.
-Weights are **historical scheduling-based proxies**, not television audience
-measurements. The current loader fails explicitly on missing scores, zero
-observations, invalid mappings or sigmoid saturation; it has no legacy fallback.
-
-Model windows remain as defined in `slots.json`. `historical_slot` explicitly
-maps each model slot to its containing historical two-hour bin. S4 and S5 both
-use Sunday 16:00–18:00. Sunday 14:00–16:00 is not a model slot but remains part
-of the available eight-score catalog when computing the sigmoid midpoint.

@@ -11,10 +11,9 @@ from datetime import datetime
 from pathlib import Path
 import ortools
 from ortools.sat.python import cp_model
-from .data import load_inputs, prepare_scenario
+from .data import load_inputs, prepare_scenario, ATTRACTIVENESS_DELTA
 from .model import build_model, SCALE, ROUNDING, objective_units
 from .validate import read_schedule, validate_export, compute_kpis, mirror_summary
-from .slot_values import valuation_report
 
 
 def write_json(path, value):
@@ -51,12 +50,21 @@ def print_schedule(matches):
 
 
 def print_slot_values(report):
-    print(f"Slot valuation: sigmoid k={report['slope']:g}, center={report['center']:.10f}", flush=True)
-    print('Slot | day | start window | historical window | score D_s | observations N_s | weight V_s')
+    print('Slot valuation: fixed values from data/slots.json', flush=True)
+    print('Slot | day | start window | weight V_s')
     for slot in report['slots']:
-        print(f"{slot['id']} | {slot['day']} | {slot['start_earliest']}-{slot['start_latest']} | "
-              f"{slot['historical_start']}-{slot['historical_end']} | "
-              f"{slot['historical_score']:.10f} | {slot['historical_observations']} | {slot['value']:.10f}")
+        print(f"{slot['id']} | {slot['day']} | {slot['start_earliest']}-{slot['start_latest']} | {slot['value']:.10f}")
+
+
+def print_team_values(teams, scenario):
+    print(f'\nTEAM ATTRACTIVENESS | a_i,r ~ Uniform[mu_i-delta, mu_i+delta], delta={ATTRACTIVENESS_DELTA:g}', flush=True)
+    print('Team | strength F_i | baseline attractiveness mu_i | draw interval')
+    for team in teams:
+        rating = scenario['ratings'][team['id']]
+        mu = rating['mu']
+        print(f"{team['name']} | {rating['F']:.6f} | {mu:.6f} | "
+              f"[{mu - ATTRACTIVENESS_DELTA:.6f}, {mu + ATTRACTIVENESS_DELTA:.6f}]")
+    print(flush=True)
 
 
 def extract_matches(value, variables, teams, slots):
@@ -85,7 +93,7 @@ class Progress(cp_model.CpSolverSolutionCallback):
 
 def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers=8,
           balance=3, mode='optimization', attractiveness_file=None, scale=SCALE,
-          alns_config=None):
+          alns_config=None, show_team_chart=False):
     started = time.monotonic()
     if not math.isfinite(time_limit) or time_limit <= 0:
         raise ValueError('Time limit must be positive and finite')
@@ -111,16 +119,23 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
     cfg = dict(time_limit=time_limit, solver_seed=seed, data_seed=scenario['data_seed'], workers=workers,
                balance=balance, mode=mode, scale=scale, rounding_policy=ROUNDING,
                lambda_numerator=numerator, lambda_denominator=denominator,
-               objective_divisor=scale * denominator, attractiveness_file=str(attractiveness_file) if attractiveness_file else None)
+               objective_divisor=scale * denominator, attractiveness_file=str(attractiveness_file) if attractiveness_file else None,
+               show_team_chart=show_team_chart)
     if alns_config is not None:
         cfg['alns'] = asdict(alns_config)
-    slot_report = valuation_report(slots)
-    cfg['slot_valuation'] = {k: v for k, v in slot_report.items() if k != 'slots'}
+    slot_report = dict(method='fixed', slots=slots)
+    cfg['slot_valuation'] = dict(method='fixed')
     write_json(output_dir / 'slot_values.json', slot_report)
-    print_slot_values(slot_report)
     write_json(output_dir / 'scenario.json', scenario)
     write_json(output_dir / 'run.json', dict(configuration=cfg, teams=teams, slots=slots, rules=rules,
                                             ortools_version=ortools.__version__))
+    print_team_values(teams, scenario)
+    print_slot_values(slot_report)
+    if show_team_chart:
+        from .plot import plot_team_values
+        chart = plot_team_values(teams, scenario, output_dir / 'team_attractiveness.png', show=True)
+        print(f'Team chart: {chart}', flush=True)
+    print('\nBuilding full CP-SAT model...', flush=True)
     model, variables = build_model(teams, slots, rules, scenario, balance, mode, scale)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit
@@ -131,6 +146,7 @@ def solve(input_dir, output_dir, time_limit=120, seed=0, *, data_seed=0, workers
                random_seed=seed, num_search_workers=workers,
                stop_after_first_solution=mode == 'feasibility' or alns_config is not None))
     progress = Progress(mode == 'optimization')
+    print(f'Searching for a schedule (limit={time_limit:g}s, workers={workers})...', flush=True)
     status = solver.solve(model, progress)
     result = dict(status=solver.status_name(status), configuration=cfg, ortools_version=ortools.__version__,
                   wall_time=solver.wall_time, total_time=time.monotonic() - started, validated=False,
@@ -216,6 +232,7 @@ def main():
     parser.add_argument('--attractiveness-file', type=Path)
     parser.add_argument('--scale', type=int, default=SCALE)
     parser.add_argument('--show-chart', action='store_true', help='Save and open the round TV-value chart after a validated solution')
+    parser.add_argument('--show-team-chart', action='store_true', help='Save and open 14 team-attractiveness curves before building the scheduling model')
     parser.add_argument('--alns', action='store_true', help='First feasible solution followed by adaptive repair and simulated annealing using the selected --lambda')
     parser.add_argument('--alns-time', type=float, default=240)
     parser.add_argument('--alns-seed', type=int, default=0)
@@ -228,12 +245,12 @@ def main():
     parser.add_argument('--many', action='store_true', help='Legacy alias; runs normal optimization in a new directory')
     parser.add_argument('--min-different-matches', type=int, default=20, help='Deprecated; ignored')
     args = parser.parse_args()
-    if args.show_chart and importlib.util.find_spec('matplotlib') is None:
+    if (args.show_chart or args.show_team_chart) and importlib.util.find_spec('matplotlib') is None:
         parser.error('Chart requires matplotlib: python -m pip install -e ".[plot]"')
     try:
         if args.many:
             args.output_dir = args.output_dir / datetime.now().strftime('run_%Y%m%d_%H%M%S_%f')
-        options = {}
+        options = {'show_team_chart': args.show_team_chart}
         if args.alns:
             from .alns import ALNSConfig
             options['alns_config'] = ALNSConfig(
