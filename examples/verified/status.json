@@ -1,8 +1,0 @@
-{
-  "status": "OPTIMAL",
-  "time_limit": 120.0,
-  "seed": 42,
-  "wall_time": 87.705667,
-  "validated": true,
-  "response_stats": "CpSolverResponse summary:\nstatus: OPTIMAL\nobjective: 0\nbest_bound: 0\nintegers: 4672\nbooleans: 32470\nconflicts: 124528\nbranches: 1540744\npropagations: 207843331\ninteger_propagations: 22043895\nrestarts: 117\nlp_iterations: 0\nwalltime: 87.7057\nusertime: 87.7057\ndeterministic_time: 204.693\ngap_integral: 0\nsolution_fingerprint: 0x990fa23a82f3896d\n"
-}
